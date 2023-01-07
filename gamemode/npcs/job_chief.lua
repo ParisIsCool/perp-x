@@ -1,0 +1,245 @@
+--[[///////////////////////////
+//         P E R P X         //
+//        2008 - 2022        //
+///>/</>>/////</>/////<</>/<///
+//  Honourably preserved by  //
+//   Paris, Wheaty, Brad,    //
+//     the aSocket Team.     //
+//>>>>>>>>>>>>><<<<<<<<<<<<<<//
+///////////////////////////--]]
+
+local NPC = {}
+
+NPC.Name = "Police Chief/Detective"
+NPC.ID = 111
+
+--NPC.Model = Model("models/preytech/perp/players/npcs/perp_cop.mdl")
+NPC.Model = Model("models/gta5/npc/armoredcitycop.mdl")
+--NPC.Skin = 2;
+--NPC.bodygroups = {}
+--NPC.bodygroups[1] = 0;
+--NPC.bodygroups[2] = 1;
+--NPC.bodygroups[3] = 0;
+--NPC.bodygroups[4] = 0;
+--NPC.bodygroups[5] = 0;
+--NPC.bodygroups[6] = 0;
+--NPC.bodygroups[7] = 0;
+--NPC.bodygroups[8] = 0;
+--NPC.bodygroups[9] = 0;
+
+NPC.Location, NPC.Angles = {}, {}
+
+--Vector( 6562.6982421875, -2686.9360351562, 136.03125 ), Angle( 1.0879325866699, -179.91380310059, 0)
+
+NPC.Location[ "rp_florida_v2" ] = {Vector( 6562.6982421875, -2686.9360351562, 136.03125 ),}
+NPC.Angles[ "rp_florida_v2" ] = {Angle( 0, -180, 0)}
+
+NPC.Location[ "rp_chaos_city_v33x_03" ] = { Vector( 3891, -4075, -2372 ) }
+NPC.Angles[ "rp_chaos_city_v33x_03" ] = { Angle( 0, -90, 0 ) }
+
+NPC.Location['rp_evocity2_v3p'] = Vector(-631.70190429688, -1686.6306152344, -427.96875)
+NPC.Angles['rp_evocity2_v3p'] = Angle(0, 0, 0)
+
+NPC.Location['rp_evocity_v33x'] = Vector(-6997, -8858, -431)
+NPC.Angles['rp_evocity_v33x'] = Angle(0, -90, 0)
+
+NPC.Location['rp_evocity_v4b1'] = { Vector(-6952.121094, -9389.687500, -431.9688) }
+NPC.Angles ['rp_evocity_v4b1'] = { Angle(0, -179, 0) }
+
+NPC.Location ['rp_rockford_v1b'] = { Vector( -7567.96875, -5671.0947265625, 8.03125 ) }
+NPC.Angles ['rp_rockford_v1b'] = { Angle( 0, -180, 0.000 ) }
+
+NPC.Location ['rp_rockford_v2b'] = { Vector(-8848.525390625, -5587, 8.03125) }
+NPC.Angles ['rp_rockford_v2b'] = { Angle(0.00, -90, 0.00000) }
+
+--Vector( -8848.525390625, -5585.904296875, 8.03125 ), Angle( -0.10005429387093, -89.697280883789, 0)
+
+
+NPC.Location['rp_paralake_city_v3'] = Vector(-8908.701171875, 10606.567382813, 288.03125)
+NPC.Angles['rp_paralake_city_v3'] = Angle(0, 90, 0)
+
+NPC.PosAngle = {}
+NPC.PosAngle ['rp_southside'] = { 
+	{pos=Vector(7825,8034,200),ang=Angle(0,-89,0)},
+}
+
+function NPC:RunBehaviour(NPCEnt)
+    return NPC_IDLE(NPCEnt)
+end
+
+// This is always local player.
+
+function NPC.OnTalk ( )
+
+	if LocalPlayer():Team() == TEAM_CITIZEN then
+		GAMEMODE.DialogPanel:SetDialog("Welcome to the Southside Police Department! \nAre you interested in being our new Police Chief or find out who took my coffee mug?");
+
+		GAMEMODE.DialogPanel:AddDialog("Yes, I'd love to be Chief!", NPC.PromoteToChief);
+		--GAMEMODE.DialogPanel:AddDialog("Actually, I was hoping to be a Sheriff Deputy.", NPC.PromoteToDetective);
+		GAMEMODE.DialogPanel:AddDialog("Actually, I was hoping to Be Detective.", NPC.PromoteToDetective);
+		GAMEMODE.DialogPanel:AddDialog("No.", LEAVE_DIALOG);
+
+	elseif LocalPlayer():Team() == TEAM_POLICE or LocalPlayer():Team() == TEAM_CHIEF or LocalPlayer():Team() == TEAM_DETECTIVE or LocalPlayer():Team() == TEAM_FBI or LocalPlayer():Team() == TEAM_SWAT or LocalPlayer():Team() == TEAM_DISPATCHER then
+
+		GAMEMODE.DialogPanel:SetDialog("You're here to quit, aren't you? This ALWAYS happens! Can't find any reliable work nowadays!");
+
+
+		if (LocalPlayer():Team() == TEAM_CHIEF) then
+			GAMEMODE.DialogPanel:AddDialog("Can you show me where I can find my car, Sergeant?", NPC.ChiefCar);
+			--	GAMEMODE.DialogPanel:AddDialog("I'd like one of them new fangled Suburbans", NPC.ChiefCar2)
+			--GAMEMODE.DialogPanel:AddDialog("Has my squad car been prepped for pickup?", NPC.DetectiveCar);
+			elseif (LocalPlayer():Team() == TEAM_DETECTIVE) then
+			--GAMEMODE.DialogPanel:AddDialog("Has my squad car been prepped for pickup?", NPC.ChiefCar);
+			GAMEMODE.DialogPanel:AddDialog("Has my squad car been prepped for pickup?", NPC.DetectiveCar);
+
+			elseif (LocalPlayer():Team() == TEAM_POLICE) then
+			--GAMEMODE.DialogPanel:AddDialog("No... I was just wondering if any squad cars were available.", NPC.ChiefCar);
+			--promotes
+			GAMEMODE.DialogPanel:AddDialog("Actually, I was hoping to Be Chief.", NPC.PromoteToChief);
+			--GAMEMODE.DialogPanel:AddDialog("Actually, I was hoping to get into the FBI.", NPC.PromoteToFbi);
+
+			--elseif (LocalPlayer():Team() == TEAM_SWAT) then
+			--GAMEMODE.DialogPanel:AddDialog("No... I was just wondering if any SWAT vans were available.", NPC.SWATVan);
+		end
+		-- get more ammo
+		GAMEMODE.DialogPanel:AddDialog("Actually, I'm looking to go to the range, got any ammo?", NPC.Ammo);
+		--quit job
+		GAMEMODE.DialogPanel:AddDialog("Actually, yes. Here's my badge.", NPC.QuitJob);
+		GAMEMODE.DialogPanel:AddDialog("Errr... No...", NPC.Relief);
+
+		--if mayor say to hi mayor
+	elseif LocalPlayer():Team() == TEAM_MAYOR then
+		GAMEMODE.DialogPanel:SetDialog("Hello, Mr. Mayor, sir!");
+		GAMEMODE.DialogPanel:AddDialog("Good day, sir.", LEAVE_DIALOG);
+	else
+		GAMEMODE.DialogPanel:AddDialog("Hello.", LEAVE_DIALOG);
+	end
+	GAMEMODE.DialogPanel:Show();
+end
+
+function NPC.PromoteToChief ()
+	local ourVehicle = LocalPlayer():GetGNWVar( "Vehicle" ) and Entity( LocalPlayer():GetGNWVar( "Vehicle" ) ) or NULL
+
+	local PoliceNumber = team.NumPlayers(TEAM_CHIEF) or 0
+
+	local Blacklist = LocalPlayer():HasBlacklist( "job", "Police" )
+
+	if LocalPlayer():IsOwner() then
+		GAMEMODE.DialogPanel:SetDialog("Welcome to the force chief! Here's your uniform, firearm, and hand cuffs. (If you abuse your new-found power, you will be blacklisted and possibly banned.)")
+
+		GAMEMODE:RequestJobJoin(TEAM_CHIEF)
+
+		GAMEMODE.DialogPanel:AddDialog("On my honor, I would never betray my badge, integrity, character, or public trust.", LEAVE_DIALOG)
+	elseif (PoliceNumber >= GAMEMODE.MaxJobs[ TEAM_CHIEF ]) then
+		GAMEMODE.DialogPanel:SetDialog("We apologize. There's been a mistake, see, we don't have any positions currently available at our department. Maybe next time?\n\n(This class is full. Try again later.)")
+
+		GAMEMODE.DialogPanel:AddDialog("Aww shucks, I'll check back in later.", LEAVE_DIALOG)
+	elseif LocalPlayer():IsWarrented() then
+		GAMEMODE.DialogPanel:SetDialog("We do not allow criminals to serve as government officials. (You have a warrant you must get rid of it before becoming a police officer.)")
+
+		GAMEMODE.DialogPanel:AddDialog("Oh, okay...", LEAVE_DIALOG)
+	elseif Blacklist then
+		GAMEMODE.DialogPanel:SetDialog( "I don't think I can trust you after what happened last time\n" .. Blacklist.Reason .. ( Blacklist.Expire == 0 and "\n(You are permanently blacklisted from this occupation.)" or "\n(You are currently blacklisted from this occupation. Expires on " .. ( GAMEMODE.Options_EuroStuff:GetBool() and os.date( "%B %d, 20%y at %H:%M", Blacklist.Expire ) or os.date( "%B %d, 20%y at %I:%M %p", Blacklist.Expire ) ) ) )
+
+		GAMEMODE.DialogPanel:AddDialog("Oh, right...", LEAVE_DIALOG)
+	elseif (LocalPlayer():GetTimePlayed() < JOB_DATABASE[TEAM_CHIEF].RequiredTime * 60 * 60 and !LocalPlayer():IsVIP()) then
+		GAMEMODE.DialogPanel:SetDialog("Sorry, but it appears that you are not qualified for this position.\n\n(You need at least " .. JOB_DATABASE[TEAM_CHIEF].RequiredTime .. " hours of play time or VIP to be an officer.)")
+
+		GAMEMODE.DialogPanel:AddDialog("Shoot, okay then..", LEAVE_DIALOG)
+	elseif (GAMEMODE.IsRunningForMayor) then
+		GAMEMODE.DialogPanel:SetDialog("Sorry, but people running for mayordom cannot be officers. Legal mumbo-jumbo.")
+
+		GAMEMODE.DialogPanel:AddDialog("Oh, that's lame.", LEAVE_DIALOG)
+	elseif IsValid( ourVehicle ) then
+		GAMEMODE.DialogPanel:SetDialog( "You need to put your vehicle into your garage before you can become a police chief." )
+
+		GAMEMODE.DialogPanel:AddDialog( "Alright, I'll be back.", LEAVE_DIALOG )
+	else
+		GAMEMODE.DialogPanel:SetDialog("Welcome to the force chief! Here's your uniform, firearm, and hand cuffs. (If you abuse your new-found power, you will be blacklisted and possibly banned.)")
+
+		GAMEMODE:RequestJobJoin(TEAM_CHIEF)
+
+		GAMEMODE.DialogPanel:AddDialog("On my honor, I would never betray my badge, integrity, character, or public trust.", LEAVE_DIALOG)
+	end
+end
+
+function NPC.PromoteToDetective()
+	local ourVehicle = LocalPlayer():GetGNWVar( "Vehicle" ) and Entity( LocalPlayer():GetGNWVar( "Vehicle" ) ) or NULL
+
+	local PoliceNumber = team.NumPlayers(TEAM_DETECTIVE)
+
+	local Blacklist = LocalPlayer():HasBlacklist( "job", "Police" )
+
+	if LocalPlayer():IsOwner() then
+		GAMEMODE.DialogPanel:SetDialog("Welcome to the force chief! Here's your uniform, firearm, and hand cuffs. (If you abuse your new-found power, you will be blacklisted and possibly banned.)")
+
+		GAMEMODE:RequestJobJoin(TEAM_DETECTIVE)
+
+		GAMEMODE.DialogPanel:AddDialog("On my honor, I would never betray my badge, integrity, character, or public trust.", LEAVE_DIALOG)
+	elseif (PoliceNumber >= GAMEMODE.MaxJobs[ TEAM_DETECTIVE ]) then
+		GAMEMODE.DialogPanel:SetDialog("We apologize. There's been a mistake, see, we don't have any positions currently available at our department. Maybe next time?\n\n(This class is full. Try again later.)")
+
+		GAMEMODE.DialogPanel:AddDialog("Aww shucks, I'll check back in later.", LEAVE_DIALOG)
+	elseif LocalPlayer():IsWarrented() then
+		GAMEMODE.DialogPanel:SetDialog("We do not allow criminals to serve as government officials. (You have a warrant you must get rid of it before becoming a police officer.)")
+
+		GAMEMODE.DialogPanel:AddDialog("Oh, okay...", LEAVE_DIALOG)
+	elseif Blacklist then
+		GAMEMODE.DialogPanel:SetDialog( "I don't think I can trust you after what happened last time\n" .. Blacklist.Reason .. ( Blacklist.Expire == 0 and "\n(You are permanently blacklisted from this occupation.)" or "\n(You are currently blacklisted from this occupation. Expires on " .. ( GAMEMODE.Options_EuroStuff:GetBool() and os.date( "%B %d, 20%y at %H:%M", Blacklist.Expire ) or os.date( "%B %d, 20%y at %I:%M %p", Blacklist.Expire ) ) ) )
+
+		GAMEMODE.DialogPanel:AddDialog("Oh, right...", LEAVE_DIALOG)
+	elseif (LocalPlayer():GetTimePlayed() < JOB_DATABASE[TEAM_DETECTIVE].RequiredTime * 60 * 60 and !LocalPlayer():IsVIP()) then
+		GAMEMODE.DialogPanel:SetDialog("Sorry, but it appears that you are not qualified for this position.\n\n(You need at least " .. JOB_DATABASE[TEAM_DETECTIVE].RequiredTime .. " hours of play time or VIP to be an officer.)")
+
+		GAMEMODE.DialogPanel:AddDialog("Shoot, okay then..", LEAVE_DIALOG)
+	elseif (GAMEMODE.IsRunningForMayor) then
+		GAMEMODE.DialogPanel:SetDialog("Sorry, but people running for mayordom cannot be officers. Legal mumbo-jumbo.")
+
+		GAMEMODE.DialogPanel:AddDialog("Oh, that's lame.", LEAVE_DIALOG)
+	elseif IsValid( ourVehicle ) then
+		GAMEMODE.DialogPanel:SetDialog( "You need to put your vehicle into your garage before you can become a police chief." )
+
+		GAMEMODE.DialogPanel:AddDialog( "Alright, I'll be back.", LEAVE_DIALOG )
+	else
+		GAMEMODE.DialogPanel:SetDialog("Welcome to the force chief! Here's your uniform, firearm, and hand cuffs. (If you abuse your new-found power, you will be blacklisted and possibly banned.)")
+
+		GAMEMODE:RequestJobJoin(TEAM_DETECTIVE)
+
+		GAMEMODE.DialogPanel:AddDialog("On my honor, I would never betray my badge, integrity, character, or public trust.", LEAVE_DIALOG)
+	end
+end
+
+function NPC.QuitJob()
+	LEAVE_DIALOG()
+
+	GAMEMODE:RequestJobLeave()
+end
+
+function NPC.Relief()
+	GAMEMODE.DialogPanel:SetDialog("Oh... In that case, hey! What can I do for you?")
+
+	GAMEMODE.DialogPanel:AddDialog("Nothing...", LEAVE_DIALOG)
+end
+
+function NPC.Ammo()
+	GAMEMODE.DialogPanel:SetDialog( "Sure, but you need to visit our armoury for that!\nThat can be found in the Control Room in the police department." )
+
+--	RunConsoleCommand( "perp_p_ammo" )
+
+	GAMEMODE.DialogPanel:AddDialog( "Thank you, sir!", LEAVE_DIALOG )
+end
+
+function NPC.ChiefCar()
+	GAMEMODE.DialogPanel:SetDialog("Sorry, but we recently hired a garage manager.\n\nPlease speak with him downstairs to retrieve your vehicle.")
+
+	GAMEMODE.DialogPanel:AddDialog("Okay, Thanks.", LEAVE_DIALOG)
+end
+
+function NPC.DetectiveCar()
+	GAMEMODE.DialogPanel:SetDialog("Sorry, but we recently hired a garage manager.\n\nPlease speak with him downstairs to retrieve your vehicle.")
+
+	GAMEMODE.DialogPanel:AddDialog("Okay, Thanks.", LEAVE_DIALOG)
+end
+
+
+GAMEMODE:LoadNPC(NPC)

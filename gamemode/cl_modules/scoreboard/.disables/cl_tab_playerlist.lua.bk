@@ -1,0 +1,541 @@
+module( "PulsarScoreboard", package.seeall )
+
+surface.CreateFont( "ScoreboardName", { font = "Roboto", size = 22, weight = 100 } )
+surface.CreateFont( "ScoreboardRank", { font = "Roboto Condensed", size = 18, weight = 200 } )
+surface.CreateFont( "ScoreboardPing", { font = "Roboto Light", size = 20, weight = 200 } )
+
+RegisterTab( "Players", 1, "ScoreboardPlayerList", true )
+
+// ================ PLAYERS
+
+PLAYERLIST = {}
+PLAYERLIST.PlyHeight = 48
+
+function PLAYERLIST:Init()
+
+	self.Players = {}
+	self.NextUpdate = 0.0
+
+end
+
+function PLAYERLIST:AddPlayer( ply )
+
+	local panel = vgui.Create( "ScoreboardPlayer" )
+	panel:SetParent( self )
+	panel:SetPlayer( ply )
+	panel:SetVisible( true )
+
+	self.Players[ ply ] = panel
+
+end
+
+function PLAYERLIST:RemovePlayer( ply )
+
+	if ValidPanel( self.Players[ ply ] ) then
+		self.Players[ ply ]:Remove()
+		self.Players[ ply ] = nil
+	end
+
+end
+
+function PLAYERLIST:Paint( w, h ) end
+
+function PLAYERLIST:Think()
+
+	if CurTime() > self.NextUpdate then
+
+		self:PopulatePlayers()
+		self:InvalidateLayout()
+		self.NextUpdate = CurTime() + 3.0
+
+	end
+
+end
+
+function PLAYERLIST:PopulatePlayers()
+
+	// Handle removing players
+	for ply in pairs( self.Players ) do
+		if !IsValid( ply ) then
+			self:RemovePlayer( ply )
+		end
+	end
+
+	// Handle adding players
+	for _, ply in pairs( player.GetAll() ) do
+		if self.Players[ ply ] == nil then
+			self:AddPlayer( ply )
+		end
+	end
+
+end
+
+function PLAYERLIST:PerformLayout()
+
+	// Lay them out
+	local PlayerSorted = self:GetSorted()
+	local curY = 0
+
+	for _, ply in pairs( PlayerSorted ) do
+
+		ply.Panel:InvalidateLayout( true )
+		ply.Panel:UpdatePlayer()
+		ply.Panel:SetPos( 0, curY )
+		ply.Panel:SetWide( self:GetWide() )
+
+		ply.Panel.List = self // so we can call this again
+
+		curY = curY + ply.Panel:GetTall() + 2
+
+	end
+
+	self:SetTall( curY )
+
+end
+
+function PLAYERLIST:GetSorted()
+
+	local sort = {}
+
+	for ply, panel in pairs( self.Players ) do
+		if IsValid(ply) then
+			ply.Panel = panel
+			table.insert( sort, ply )
+		end
+	end
+
+	// Sort that shit
+	local nameSort = function( a, b )
+		local arank = a:GetGNWVar( "disguised" ) == 1 and 9 or a:GetGNWVar( "ASS_isAdmin", 200 )
+		local brank = b:GetGNWVar( "disguised" ) == 1 and 9 or b:GetGNWVar( "ASS_isAdmin", 200 )
+
+		return arank < brank
+	end
+	table.sort( sort, nameSort )
+
+	return sort
+
+end
+
+vgui.Register( "ScoreboardPlayerList", PLAYERLIST )
+
+
+
+local PLAYER = {}
+PLAYER.Padding = 8
+PLAYER.InfoTall = 80
+PLAYER.AvatarSize = 32
+
+function PLAYER:Init()
+
+	self:SetTall( PLAYERLIST.PlyHeight )
+
+	self.AvatarContainer = vgui.Create( "DButton", self )
+	self.AvatarContainer:SetSize( self.AvatarSize, self.AvatarSize )
+	self.AvatarContainer:SetMouseInputEnabled( true )
+	self.AvatarContainer.DoClick = function()
+		if self.Player then
+			self.Player:ShowProfile()
+		end
+	end
+
+	self.Avatar = vgui.Create( "AvatarImage", self.AvatarContainer )
+	self.Avatar:SetSize( self.AvatarSize, self.AvatarSize )
+	self.Avatar:SetMouseInputEnabled( false )
+	self.Avatar:SetVisible( false )
+
+	self.Name = Label( "Unknown", self )
+	self.Name:SetFont( "ScoreboardName" )
+	self.Name:SetColor( Color( 255, 255, 255 ) )
+
+	self.Rank = Label( "Unknown", self )
+	self.Rank:SetFont( "ScoreboardRank" )
+	self.Rank:SetColor( Color( 255, 255, 255, 255 ) )
+	self.Rank:SetPos( 0, 8 )
+
+	self.Ping = vgui.Create( "ScoreboardPlayerPing", self )
+
+	self.Mute = vgui.Create( "DImageButton", self )
+	self.Mute:SetSize( 16, 16 )
+	self.Mute:SetZPos( 1 )
+	self.Mute:SetMouseInputEnabled( true )
+
+	self.Info = vgui.Create( "ScoreboardPlayerInfo", self )
+	self.Info:SetSize( self:GetWide(), self.InfoTall )
+	self.Info:SetVisible( false )
+	self.Info:SetMouseInputEnabled( true )
+
+end
+
+local Classes = {
+	[TEAM_CITIZEN] = "Citizen",
+	[TEAM_POLICE] = "Police Officer",
+	[TEAM_SECRET_SERVICE] = "SS Agent",
+	[TEAM_SWAT] = "SWAT Officer",
+	[TEAM_MAYOR] = "Mayor",
+	[TEAM_FIREMAN] = "Fireman",
+	[TEAM_PARAMEDIC] = "Medic",
+	[TEAM_DISPATCHER] = "Dispatch",
+	[TEAM_ROADSERVICE] = "Road Crew",
+	[TEAM_CHIEF] = "Police Chief",
+	[TEAM_FBI] = "FBI Agent",
+	[TEAM_DETECTIVE] = "Detective",
+	[TEAM_FIRECHIEF] = "Fire Chief",
+	[TEAM_BUSDRIVER] = "Bus Driver",
+	[TEAM_TAXI] = "Taxi Driver",
+}
+
+function PLAYER:UpdatePlayer()
+
+	local text = self.Player:Name()
+
+	if (GAMEMODE.FolderName != 'gtaonline') then
+	--if (GAMEMODE.FolderName != 'gtamrp') then
+		text = self.Player:Name()
+	elseif (LocalPlayer():IsAdmin()) then
+		local class = Classes[ self.Player:Team() ]
+		if class then
+			class = class
+		else
+			class = "Unknown Class";
+		end
+
+		text = self.Player:Name() .. ' [' .. self.Player:GetRPName() .. '] [' .. class .. ']'
+	end
+
+	self.Name:SetText( text )
+	self.Rank:SetText( string.upper( self:GetPlayerRank() ) )
+	self.Ping:Update()
+
+end
+
+function PLAYER:SetPlayer( ply )
+
+	self.Player = ply
+
+	self.Avatar:SetPlayer( ply, 64 )
+	self.Avatar:SetVisible( true )
+
+	self.Ping:SetPlayer( ply )
+	self.Info:SetPlayer( ply )
+
+	self:UpdatePlayer()
+
+end
+
+local IsDev = {}
+IsDev[ "STEAM_0:0:" ] = true
+IsDev[ "STEAM_0:1:48346169" ] = true --Nung221 / Brad
+
+local IsLeader = {}
+IsLeader[ "STEAM_0:0:" ] = true
+IsLeader[ "STEAM_0:" ] = true
+
+local IsCDev = {}
+IsCDev[ "STEAM_0" ] = true
+
+local IsCD = {}
+IsCD[ "STEAM_0:0:5" ] = true
+
+
+local IsDVL = {}
+
+local IsSuper = {}
+
+local IsHall = {}
+IsHall[ "STEAM_0:1" ] = true
+
+
+
+
+function PLAYER:GetPlayerRank()
+
+	local ply = self.Player
+
+	local rank = "Member"
+
+	if ( ply:GetGNWVar( "disguised" ) ) then
+		return "Gold"
+	end
+
+	if IsDev[ ply:SteamID() ] then
+		return "Developer | Leader"
+	end
+
+	if IsLeader[ ply:SteamID() ] then
+		return "Leader"
+	end
+	
+	if IsCDev[ ply:SteamID() ] then
+		return "Community Developer | Server Manager"
+	end
+
+	if IsCD[ ply:SteamID() ] then
+		return "Community Director"
+	end
+
+	if IsDVL[ ply:SteamID() ] then
+		return "GMod Division Leader"
+	end
+
+	if ply:IsOwner() then
+		return "Owner"
+	end
+
+	if ply:IsDVL() then
+		return "Server Manager"
+	end
+
+	if IsSuper[ ply:SteamID() ] then
+		return "Super Admin"
+	end
+
+	if ply:IsSuperAdmin() then
+		return "Super Admin"
+	end
+
+	if ply:IsAdmin() then
+		return "Admin"
+	end
+
+	if ply:IsGoldVIP() then
+		return "Gold"
+	end
+
+	if ply:IsVIP() then
+		return "VIP"
+	end
+
+	return rank
+
+end
+
+function PLAYER:PerformLayout()
+
+	self.AvatarContainer:AlignTop( self.Padding )
+	self.AvatarContainer:AlignLeft( self.Padding )
+
+	self.Name:SizeToContents()
+	self.Name:AlignTop( self.Padding / 2 )
+	self.Name:AlignLeft( self.AvatarContainer:GetWide() + 16 )
+
+	self.Rank:SizeToContents()
+	self.Rank:AlignTop( self.Name:GetTall() )
+	self.Rank:AlignLeft( self.AvatarContainer:GetWide() + 16 )
+
+	self.Mute:AlignRight( self.Padding )
+	self.Mute:AlignTop( self.Padding * 2 )
+
+	self.Ping:InvalidateLayout()
+	self.Ping:SizeToContents()
+	self.Ping:AlignTop( self.Name:GetTall() / 2 )
+	self.Ping:AlignRight( self.Mute:GetWide() + ( self.Padding * 2 ) )
+
+	self.Info:InvalidateLayout()
+	self.Info:AlignTop( PLAYERLIST.PlyHeight )
+
+	if self.Info:IsVisible() then
+		self:SetTall( PLAYERLIST.PlyHeight + self.Info:GetTall() )
+	else
+		self:SetTall( PLAYERLIST.PlyHeight )
+	end
+
+end
+
+function PLAYER:Paint( w, h )
+
+	surface.SetDrawColor( 12, 12, 12, 255 )
+	surface.DrawRect( 0, 0, self:GetSize() )
+
+	if self:IsMouseOver() && !self.Mute.Hovered && !self.AvatarContainer.Hovered then
+
+		surface.SetDrawColor( 44, 45, 48, 150 )
+		surface.SetMaterial( GradientUp )
+		surface.DrawTexturedRect( 0, 0, self:GetWide(), PLAYERLIST.PlyHeight )
+
+	end
+
+	if self.Info && self.Info:IsVisible() then
+
+		surface.SetDrawColor( 255, 255, 255, 100 )
+		surface.SetMaterial( GradientTabs )
+		surface.DrawTexturedRect( -2, -2, self:GetWide() + 4, self:GetTall() )
+
+	end
+
+	local Colour 	= Color( 255, 255, 255, 255 )
+	local Alpha 	= 10 + ( 200 * math.abs( math.sin( CurTime() * 2 ) ) )
+
+	if self.Player && IsValid(self.Player) then
+		if self.Player:GetGNWVar( "disguised" ) ~= 1 and self.Player:IsAdmin() then
+			if IsDev[ self.Player:SteamID() ] then
+				Colour = Color( 255, 0, 0, Alpha )
+			elseif self.Player:IsOwner() then
+				Colour = Color( 255, 0, 0, Alpha )
+			elseif IsCD[ self.Player:SteamID() ] then
+				Colour = Color( 255, 0, 0, Alpha )
+			elseif IsCDev[ self.Player:SteamID() ] then
+				Colour = Color( 255, 0, 0, Alpha )
+			elseif self.Player:IsDVL() then
+				Colour = Color( 255, 140 ,0, Alpha )
+			elseif self.Player:IsSuperAdmin() then
+				Colour = Color( 255, 8, 181, Alpha )
+			elseif self.Player:IsAdmin() then
+				Colour = Color( 0, 255, 0, Alpha )
+			end
+		else
+			if self.Player:IsGoldVIP() then
+				Colour = Color( 255, 215, 0, 255 )
+			elseif self.Player:IsVIP() then
+				Colour = Color( 0, 191, 255, 255 )
+			end
+		end
+	end
+
+	self.Name:SetColor( Colour )
+
+end
+
+function PLAYER:Think()
+
+	if !IsValid(self.Player) then return end
+
+	if self:IsMouseOver() then
+		self:SetCursor( "hand" )
+	else
+		self:SetCursor( "default" )
+	end
+
+	if self.Muted == nil || self.Muted != self.Player:IsMuted() then
+
+		self.Muted = self.Player:IsMuted()
+		if self.Muted then
+			self.Mute:SetImage( MicMute )
+		else
+			self.Mute:SetImage( Mic )
+		end
+
+		self.Mute.DoClick = function() self.Player:SetMuted( !self.Muted ) end
+
+	end
+
+end
+
+function PLAYER:OnMousePressed()
+	if !LocalPlayer():IsAdmin() then return end
+	self.Info:Toggle()
+
+	// Invalidate all the layouts...
+	self:InvalidateLayout()
+
+	if self.List then
+		self.List:InvalidateLayout()
+
+		if self.List:GetParent() then
+			self.List:GetParent():InvalidateLayout()
+		end
+	end
+
+end
+
+function PLAYER:IsMouseOver()
+
+	if !Gui.MouseEnabled then return end
+
+	local x,y = self:CursorPos()
+	return x >= 0 and y >= 0 and x <= self:GetWide() and y <= PLAYERLIST.PlyHeight
+
+end
+
+vgui.Register( "ScoreboardPlayer", PLAYER )
+
+
+
+local PLAYERPING = {}
+PLAYERPING.Padding = 8
+
+function PLAYERPING:Init()
+
+	self:SetMouseInputEnabled( false )
+
+	self.Ping = Label( "99", self )
+	self.Ping:SetFont( "ScoreboardPing" )
+	self.Ping:SetColor( Color( 255, 255, 255 ) )
+
+	self.Heights = { 3, 6, 9 }
+	self.PingAmounts = { 300, 200, 100 }
+	self.BaseSpacing = 5
+	self.PingVal = 0
+
+end
+
+function PLAYERPING:Update()
+
+	local ping = self.Player:Ping()
+
+	self.Ping:SetText( ping )
+	self.PingVal = ping
+
+end
+
+function PLAYERPING:SetPlayer( ply )
+
+	self.Player = ply
+	self:Update()
+
+end
+
+function PLAYERPING:PerformLayout()
+
+	self.Ping:SizeToContents()
+	self.Ping:AlignRight()
+	self.Ping:AlignTop( self.Padding / 2 )
+
+end
+
+function PLAYERPING:Paint( w, h )
+
+	local height = self.Ping:GetTall()
+	local xpos = 40 - 10
+	local x = xpos
+
+	// BG
+	surface.SetDrawColor( 255, 255, 255, 10 )
+
+	for _, h in pairs( self.Heights ) do
+		surface.DrawRect( x, height - h, 3, h )
+		x = x + 4
+	end
+
+	// Lit/Main
+	x = xpos
+	surface.SetDrawColor( 255, 255, 255, 255 )
+
+	for i=1, #self.Heights do
+
+		local h = self.Heights[i]
+
+		if self.PingVal < self.PingAmounts[i] then
+			surface.DrawRect( x, height - h, 3, h )
+		end
+
+		x = x + 4
+
+	end
+
+
+	surface.SetTextColor( 255, 255, 255, 10 )
+	surface.SetFont( "ScoreboardPing" )
+
+	local zeros = "000"
+	if self.PingVal >= 0 then zeros = "00" end
+	if self.PingVal >= 10 then zeros = "0" end
+	if self.PingVal >= 100 then zeros = "" end
+
+	local w, h = surface.GetTextSize( zeros )
+	surface.SetTextPos( self.Ping.x - w - 1, self.Ping.y )
+	surface.DrawText( zeros )
+
+end
+
+vgui.Register( "ScoreboardPlayerPing", PLAYERPING )

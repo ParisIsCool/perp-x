@@ -1,0 +1,581 @@
+module( "PulsarScoreboard", package.seeall )
+
+surface.CreateFont( "ScoreboardInfoTitle", { font = "Roboto Bold Condensed", size = 16, weight = 200 } )
+surface.CreateFont( "ScoreboardInfoValue", { font = "Roboto Regular", size = 22, weight = 100 } )
+
+local Positions = {
+	[0] = "Council",
+	[1] = "Division Leader",
+	[2] = "Super Administrator",
+	[3] = "Administrator",
+	[4] = "Trial Administrator",
+	[9] = "Gold Member",
+	[10] = "VIP",
+	[200] = "Guest",
+	[255] = "Banned",
+}
+
+local Classes = {
+	[TEAM_CITIZEN] = "Citizen",
+	[TEAM_POLICE] = "Police Officer",
+	[TEAM_SECRET_SERVICE] = "SS Agent",
+	[TEAM_SWAT] = "SWAT Officer",
+	[TEAM_MAYOR] = "Mayor",
+	[TEAM_FIREMAN] = "Fireman",
+	[TEAM_PARAMEDIC] = "Medic",
+	[TEAM_DISPATCHER] = "Dispatcher",
+	[TEAM_ROADSERVICE] = "Road Crew",
+	[TEAM_CHIEF] = "Police Chief",
+	[TEAM_FBI] = "FBI Agent",
+	[TEAM_DETECTIVE] = "Detective",
+	[TEAM_FIRECHIEF] = "Fire Chief",
+	[TEAM_BUSDRIVER] = "Bus Driver",
+	[TEAM_TAXI] = "Taxi Driver",
+}
+
+local IsDev = {}
+IsDev[ "STEAM_0:0:" ] = true
+
+local IsLeader = {}
+IsLeader[ "STEAM_0:1:48346169" ] = true
+
+local IsCD = {}
+IsCD[ "STEAM_0:0" ] = true
+
+local PLAYERINFO = {}
+PLAYERINFO.Padding = 8
+PLAYERINFO.RowsPerColumn = 2
+PLAYERINFO.WidthBetweenColumns = 200
+PLAYERINFO.InfoValues = {
+
+	[1] = { "Steam Name",
+		function( ply )
+			return ply:Nick()
+		end
+	},
+
+	[2] = { "Roleplay Name",
+		function( ply )
+			if ply.GetRPName then
+				return ply:GetRPName()
+			end
+			return ply:Name()
+		end
+	},
+
+	[3] = { "Steam ID",
+		function( ply )
+			return ply:SteamID()
+		end
+	},
+
+	[4] = { "Unique ID",
+		function( ply )
+			return ply:UniqueID()
+		end
+	},
+
+	[5] = { "Job",
+		function( ply )
+
+			local class = Classes[ ply:Team() ]
+			if class then
+				return class
+			end
+
+			return "Unknown Class"
+
+		end
+	},
+
+	[6] = { "Rank",
+		function( ply )
+			--[[if ply:GetGNWVar( "disguised" ) then
+				return "Guest"
+			end]]--
+
+			if IsLeader[ ply:SteamID() ] then
+				return "Leader"
+			end
+
+			if IsDev[ ply:SteamID() ] then
+				return "Developer | Leader"
+			end
+			
+			if ply:IsOwner() then
+				return "Leader"
+			end
+
+			if IsCD[ ply:SteamID() ] then
+				return "Community Director"
+			end
+
+			if ply:IsDVL() then
+				return "Server Manager"
+			end
+
+			if ply:IsSuperAdmin() then
+				return "Senior Admin"
+			end
+
+			if ply:IsAdmin() then
+				return "Admin"
+			end
+
+			if ply:IsGoldVIP() then
+				return "Gold"
+			end
+
+			if ply:IsVIP() then
+				return "VIP"
+			end
+
+			return "Unknown"
+		end
+	},
+}
+
+local function Blacklist( Player, Type, Reason )
+	RunConsoleCommand( "perp_a_bl", Player:UniqueID(), Type, GAMEMODE.AdminPunishment_Time:GetInt(), Reason )
+end
+
+local function Unblacklist( Player, Type, Value )
+	RunConsoleCommand( "perp_a_ubl", Player:UniqueID(), Type, Value )
+end
+
+PLAYERINFO.AdminButtons = {
+	[1] = { "Kick",
+		function( ply )
+			local INFO = {}
+			INFO.Function = ASS_KickPlayer
+			INFO.Type = "kick"
+			INFO.Player = ply
+
+			PromptStringRequest( "Custom Reason...",
+				"Why do you want to " .. INFO.Type .. " " .. INFO.Player:Nick() .. "?",
+				"",
+				function( strTextOut )
+					table.insert( ASS_Config[ "reasons" ], { name = strTextOut, reason = strTextOut } )
+					ASS_WriteConfig()
+
+					INFO.Reason = strTextOut
+					INFO.Function(INFO)
+				end
+			)
+		end
+	},
+
+	[2] = { "Ban",
+		function( ply )
+			local INFO = {}
+			INFO.Function = ASS_BanPlayer
+			INFO.Type = "ban"
+			INFO.Player = ply
+
+			PromptStringRequest( "Custom Reason...",
+				"Why do you want to " .. INFO.Type .. " " .. INFO.Player:Nick() .. "?",
+				"",
+				function( strTextOut )
+					table.insert( ASS_Config[ "reasons" ], { name = strTextOut, reason = strTextOut } )
+					ASS_WriteConfig()
+
+					INFO.Reason = strTextOut
+					INFO.Time = GAMEMODE.AdminPunishment_Time:GetInt()
+
+					INFO.Function(INFO)
+				end
+			)
+		end
+	},
+
+	[3] = { "Spectate",
+		function( ply )
+			if ply == LocalPlayer() then return ply:Notify( "You can't spectate yourself." ) end
+
+			RunConsoleCommand( "perp_a_s", ply:UniqueID() )
+			PERP_SpectatingEntity = ply
+			ply:Notify( "Press space to exit spectator mode." )
+		end
+	},
+
+	[4] = { "Blacklist",
+		function( ply )
+			local Menu = DermaMenu()
+
+			Menu:AddOption( "Advert", function()
+				ShowGetBanTime( "Advert Blacklisting " .. ply:Nick(), "Blacklist Reason", "Advert Blacklist Player", function ( t )
+					if IsValid( ply ) and ply:IsPlayer() then
+						Blacklist( ply, "advert", t )
+					end
+				end )
+			end )
+
+			Menu:AddOption( "OOC", function()
+				ShowGetBanTime( "OOC Blacklisting " .. ply:Nick(), "Blacklist Reason", "OOC Blacklist Player", function ( t )
+					if IsValid( ply ) and ply:IsPlayer() then
+						Blacklist( ply, "ooc", t )
+					end
+				end )
+			end )
+
+			Menu:AddOption( "Job", function()
+				ShowGetBanTime( "Job Blacklisting " .. ply:Nick(), "Blacklist Reason", "Job Blacklist Player", function ( t )
+					if IsValid( ply ) and ply:IsPlayer() then
+						Blacklist( ply, "job", t )
+					end
+				end )
+			end )
+
+			Menu:AddOption( "Driving", function()
+				ShowGetBanTime( "Driving Blacklisting " .. ply:Nick(), "Blacklist Reason", "Driving Blacklist Player", function ( t )
+					if IsValid( ply ) and ply:IsPlayer() then
+						Blacklist( ply, "driving", t )
+					end
+				end )
+			end )
+
+			if GAMEMODE:IsSerious() then
+				Menu:AddOption( "Serious Server", function()
+					ShowGetBanTime( "Serious Server Blacklisting " .. ply:Nick(), "Blacklist Reason", "Serious Server Blacklist Player", function ( t )
+						if IsValid( ply ) and ply:IsPlayer() then
+							Blacklist( ply, "serious", t )
+						end
+					end )
+				end )
+			end
+
+			Menu:Open()
+		end
+	},
+
+	[5] = { "Unblacklist",
+		function( ply )
+			local Menu = DermaMenu()
+
+			local Blacklists = GAMEMODE.Blacklists[ ply:UniqueID() ]
+
+			if not Blacklists or table.Count( Blacklists ) == 0 then Menu:AddOption( "NONE" ) return Menu:Open() end
+
+			for k, v in pairs( Blacklists ) do
+				if k == "advert" and ply:HasBlacklist( "advert" ) then
+					Menu:AddOption( "Advert (" .. v.Reason .. ")", function() Unblacklist( ply, "advert" ) end )
+				elseif k == "ooc" and ply:HasBlacklist( "ooc" ) then
+					Menu:AddOption( "OOC (" .. v.Reason .. ")", function() Unblacklist( ply, "ooc" ) end )
+				elseif k == "driving" and ply:HasBlacklist( "driving" ) then
+					Menu:AddOption( "Driving (" .. v.Reason .. ")", function() Unblacklist( ply, "driving" ) end )
+				elseif k == "job" then
+					for k, v in pairs( v ) do
+						if ply:HasBlacklist( "job", k ) then
+							Menu:AddOption( "Job " .. k .. " (" .. v.Reason .. ")", function() Unblacklist( ply, "job", k ) end )
+						end
+					end
+				end
+			end
+
+			Menu:Open()
+		end
+	},
+
+	[6] = { "Goto",
+		function( ply )
+			if ply == LocalPlayer() then return ply:Notify( "You can't goto yourself." ) end
+
+			RunConsoleCommand( "perp_adm_goto", ply:UniqueID() )
+		end
+	},
+
+	[7] = { "Bring",
+		function( ply )
+			if ply == LocalPlayer() then return ply:Notify( "You can't bring yourself." ) end
+
+			RunConsoleCommand( "perp_adm_bring", ply:UniqueID() )
+		end
+	},
+
+	[8] = { "Rename",
+		function( ply )
+			RunConsoleCommand( "perp_a_fr", ply:UniqueID() )
+		end
+	},
+
+	[9] = { "Respawn",
+		function( ply )
+			RunConsoleCommand( "perp_a_sl", ply:UniqueID() )
+		end
+	},
+
+	[10] = { "Demote",
+		function( ply )
+			RunConsoleCommand( "perp_adm_demote", ply:SteamID64() )
+		end
+	},
+}
+
+PLAYERINFO.AdminSliders = {
+
+	[1] = { "Punishment Length",
+		0, //Min
+		1440, //Max
+		"pulsar_punishmentlength" // Cvar
+	},
+}
+
+GM.AdminPunishment_Time = CreateClientConVar( "pulsar_punishmentlength", "0", true, false )
+
+function PLAYERINFO:Init()
+
+	self:SetMouseInputEnabled( false )
+	self.InfoPanels = {}
+	self.AdminPanels = {}
+	self.AdminSliderPanels = {}
+
+end
+
+function PLAYERINFO:SetPlayer( ply )
+	self.Player = ply
+end
+
+function PLAYERINFO:Toggle()
+
+	self:SetVisible( !self:IsVisible() )
+
+	// Setup the info panels...
+	if self:IsVisible() then
+		self:AddPanels()
+	else
+		self:RemovePanels()
+	end
+
+	self:InvalidateLayout()
+
+end
+
+function PLAYERINFO:AddPanels()
+
+	self:Update()
+
+	if LocalPlayer():IsAdmin() then
+		self:UpdateAdmin()
+	end
+
+end
+
+function PLAYERINFO:RemovePanels()
+
+	local clear = table.Add( self.InfoPanels, self.AdminPanels )
+	table.Add( clear, self.AdminSliderPanels )
+
+	for id, panel in ipairs( clear ) do
+
+		if IsValid( panel ) then
+			panel:Remove()
+		end
+
+	end
+
+	self.InfoPanels = {}
+	self.AdminPanels = {}
+	self.AdminSliderPanels = {}
+
+end
+
+function PLAYERINFO:Update()
+
+	for id, tbl in ipairs( self.InfoValues ) do
+
+		local panel = self.InfoPanels[ id ]
+
+		if !panel then
+			panel = vgui.Create( "ScoreboardPlayerInfoTag", self )
+			panel:SetSize( 300, 32 )
+			self.InfoPanels[ id ] = panel
+		end
+
+		if panel then
+			panel:SetInfo( tbl[1], tbl[2]( self.Player ) )
+		end
+
+	end
+
+end
+
+function PLAYERINFO:UpdateAdmin()
+
+	// Setup Buttons
+	for id, tbl in ipairs( self.AdminButtons ) do
+
+		local panel = self.AdminPanels[ id ]
+
+		if !panel then
+			panel = vgui.Create( "DButtonPE", self )
+			panel:SetSize( 150, 10 )
+			panel:SetMouseInputEnabled( true )
+			self.AdminPanels[ id ] = panel
+		end
+
+		if panel then
+			panel:SetText( string.upper( tbl[1] ) )
+			panel.Player = self.Player
+			panel.Function = tbl[2]
+			panel.DoClick = function()
+				if IsValid( self.Player ) then
+					panel.Function( self.Player )
+				end
+			end
+		end
+
+	end
+
+	// Setup Sliders
+	for id, tbl in ipairs( self.AdminSliders ) do
+
+		local panel = self.AdminSliderPanels[ id ]
+
+		if !panel then
+			panel = vgui.Create( "DNumSliderPE", self )
+			panel:SetSize( 300, 40 )
+			panel:SetMouseInputEnabled( true )
+			panel:SetConVar( tbl[4] )
+			panel:SetMinMax( tbl[2], tbl[3] )
+			panel:SetDecimals( 0 )
+			self.AdminSliderPanels[ id ] = panel
+		end
+
+		if panel then
+			panel:SetText( string.upper( tbl[1] ) )
+			panel.Player = self.Player
+			panel.Function = tbl[2]
+			panel.DoClick = function()
+				if IsValid( self.Player ) then
+					panel.Function( self.Player )
+				end
+			end
+		end
+
+	end
+
+end
+
+function PLAYERINFO:PerformLayout()
+
+	local tall = 0
+	local infoTall = 0
+	local infoWide = 0
+
+	// Main info
+	if #self.InfoPanels > 0 then
+
+		local curX = self.Padding
+		local curY = 0
+		local row = 1
+		local column = 1
+
+		for id, panel in ipairs( self.InfoPanels ) do
+
+			if row > self.RowsPerColumn then
+
+				curX = curX + self.WidthBetweenColumns
+
+				column = column + 1
+				row = 1
+				curY = 0
+
+			end
+
+			if row == self.RowsPerColumn then
+				curY = curY + panel:GetTall() + 5
+			end
+
+			panel:SetPos( curX, curY )
+			row = row + 1
+
+		end
+
+		infoTall = curY * self.RowsPerColumn
+		tall = infoTall
+		infoWide = curX
+
+	end
+
+	// Admin panels
+	if #self.AdminPanels > 0 || #self.AdminSliders then
+
+		// Buttons
+		local curY = 0
+
+		for id, panel in ipairs( self.AdminPanels ) do
+
+			panel:SizeToContents()
+			panel:SetPos( 0, curY )
+			panel:AlignRight( self.Padding )
+
+			curY = curY + panel:GetTall()
+
+		end
+
+		// Sliders
+		local sliderY = 0
+
+		for id, panel in ipairs( self.AdminSliderPanels ) do
+
+			panel:SizeToContents()
+			panel:SetWide( infoWide + self.WidthBetweenColumns )
+			panel:AlignLeft( self.Padding )
+			panel:AlignTop( infoTall + self.Padding + sliderY )
+
+			sliderY = panel:GetTall()
+
+			curY = curY + ( panel:GetTall() / 2 )
+
+		end
+
+		tall = curY
+
+	end
+
+	self:SetWide( self:GetParent():GetWide() )
+	self:SetTall( tall + self.Padding )
+
+end
+
+vgui.Register( "ScoreboardPlayerInfo", PLAYERINFO )
+
+
+
+local INFOTAG = {}
+
+function INFOTAG:Init()
+
+	self.Title = Label( "", self )
+	self.Title:SetFont( "ScoreboardInfoTitle" )
+	self.Title:SetColor( Color( 255, 255, 255 ) )
+
+	self.Value = Label( "", self )
+	self.Value:SetFont( "ScoreboardInfoValue" )
+	self.Value:SetColor( Color( 255, 255, 255 ) )
+
+end
+
+function INFOTAG:SetInfo( title, value )
+
+	self.Title:SetText( string.upper( title ) )
+
+	if value then
+		self.Value:SetText( value )
+	end
+
+	self:InvalidateLayout()
+
+end
+
+function INFOTAG:PerformLayout()
+
+	self.Title:SizeToContents()
+	self.Title:SetWide( PLAYERINFO.WidthBetweenColumns )
+	self.Value:SizeToContents()
+
+	self.Value:AlignTop( 12 )
+
+end
+
+vgui.Register( "ScoreboardPlayerInfoTag", INFOTAG )

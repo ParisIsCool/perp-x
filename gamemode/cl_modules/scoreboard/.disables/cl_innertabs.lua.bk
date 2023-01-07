@@ -1,0 +1,123 @@
+module( "PulsarScoreboard", package.seeall )
+
+surface.CreateFont( "ScoreboardTabButton", { font = "Roboto Condensed", size = 20, weight = 400 } )
+
+local TABPANEL = {}
+TABPANEL.Padding = 15
+TABPANEL.ButtonWidth = SCOREBOARD.TabWidth
+
+function TABPANEL:Init()
+
+	self.Panels = {}
+	self.Buttons = {}
+
+	self.ActivePanel = nil
+
+end
+
+function TABPANEL:AddTab( id, title, body )
+
+	local but = vgui.Create( "DButtonPE", self )
+	local panel = vgui.Create( "DPanelListPE", self )
+
+	// Setup panel
+	panel:SetSize( 150, 10 )
+	panel:EnableVerticalScrollbar()
+	panel:EnableHorizontal( false )
+	panel.Paint = function() end
+	panel:SetVisible( false )
+	panel:SetParent( self )
+
+	panel.Body = body
+	panel:AddItem( body )
+	panel.Button = but
+	body:SetParent( panel )
+
+	// Setup button
+	but:SetText( title )
+	but:SetSize( self.ButtonWidth, 12 )
+	but:SetFont( "ScoreboardTabButton" )
+	but:SetMouseInputEnabled( true )
+	but.NoMouseOver = true
+	but.DoClick = function()
+		self:SetActive( panel )
+	end
+
+	// Insert
+	self.Panels[id] = panel
+	self.Buttons[id] = but
+
+end
+
+function TABPANEL:AddTabs( tabs )
+
+	for id, tab in ipairs( tabs ) do
+		self:AddTab( id, tab[1], tab[2] )
+	end
+
+end
+
+function TABPANEL:Think()
+
+	// Setup the active panel
+	if !ValidPanel( self.ActivePanel ) && #self.Panels > 0 then
+		self:SetActive( self.Panels[1] )
+	end
+
+end
+
+function TABPANEL:SetActive( active )
+
+	if self.ActivePanel == active then return end
+
+	if ValidPanel( self.ActivePanel ) then
+		self.ActivePanel:SetVisible( false ) // Hide original
+		self.ActivePanel.Button:FadeOut()
+		self.ActivePanel:SetParent( nil )
+	end
+
+	self.ActivePanel = active
+	self.ActivePanel:SetPos( 0, 0 )
+	self.ActivePanel:SetSize( self:GetWide() - self.ButtonWidth, self:GetTall() )
+	self.ActivePanel:SetVisible( true ) // Show new
+
+	self.ActivePanel.Button:FadeIn()
+	self.ActivePanel:InvalidateLayout( true )
+	self.ActivePanel:SetParent( self )
+
+	if self.ActivePanel.Body.OnOpen then
+		self.ActivePanel.Body:OnOpen()
+	end
+
+	self:InvalidateLayout( true )
+
+end
+
+function TABPANEL:PerformLayout()
+
+	if #self.Buttons > 0 then
+
+		local curY = 0
+
+		for id, panel in ipairs( self.Buttons ) do
+
+			panel:SizeToContents()
+			panel:SetPos( 0, curY )
+			panel:AlignLeft( self:GetWide() - self.ButtonWidth + self.Padding )
+
+			curY = curY + panel:GetTall()
+
+		end
+
+	end
+
+end
+
+function TABPANEL:Paint( w, h )
+
+	surface.SetDrawColor( 20, 23, 25, 255 )
+	surface.DrawRect( self:GetWide() - self.ButtonWidth, 0, self.ButtonWidth, self:GetTall() )
+
+end
+
+vgui.Register( "ScoreboardTabPanel", TABPANEL )
