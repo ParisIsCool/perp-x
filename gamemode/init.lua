@@ -8,14 +8,6 @@
 //>>>>>>>>>>>>><<<<<<<<<<<<<<//
 ///////////////////////////--]]
 
--- no
--- Ensure folders are available, thanks garry for removing automatic folder creation...
--- More checks in system_misc.lua
-if not file.IsDir( "perp", "DATA" ) then file.CreateDir( "perp" ) end
-if not file.IsDir( "perp_logs", "DATA" ) then file.CreateDir( "perp_logs" ) end
-if not file.IsDir( "gtaonline", "DATA" ) then file.CreateDir( "gtaonline" ) end
-if not file.IsDir( "gtaonline_logs", "DATA" ) then file.CreateDir( "gtaonline_logs" ) end
-
 local hostnames = {
     "PERP X - Modern Roleplay | Free Physgun - aSocket.net/discord",
     "PERP X - Modern Roleplay | Free Physgun | Summer Showdown - aSocket.net/discord",
@@ -60,6 +52,12 @@ MapChange["18:25:0"] = {Text="The server will changing to the night map in 5 min
 MapChange["18:29:0"] = {Text="The server will changing to the night map in 1 minute!",DoHUD=true}
 MapChange["18:29:43"] = {CountdownText="The server will change levels in ",DoCountdown=true,Retry=false,MapChange="rp_southside"}
 
+-- Ensure folders are available, thanks garry for removing automatic folder creation...
+-- More checks in system_misc.lua
+if not file.IsDir( "perp", "DATA" ) then file.CreateDir( "perp" ) end
+if not file.IsDir( "perp_logs", "DATA" ) then file.CreateDir( "perp_logs" ) end
+if not file.IsDir( "gtaonline", "DATA" ) then file.CreateDir( "gtaonline" ) end
+if not file.IsDir( "gtaonline_logs", "DATA" ) then file.CreateDir( "gtaonline_logs" ) end
 
 timer.Create("MapChangerThink", 1, 0, function()
 	local Timestamp = os.time()
@@ -115,8 +113,6 @@ include( "sv_config.lua" )
 include( "mysql.lua" )
 include( "sv_hooks.lua" )
 include( "sv_player.lua" )
-
-CSR = CSR or {}
 
 function DollarSign()
 	return "$"
@@ -190,30 +186,3 @@ local Files, Folders = file.Find( FOLDER_NAME .. "/gamemode/vehicles/vip/*.lua",
 for _, v in pairs( Files ) do AddCSLuaFile( "vehicles/vip/" .. v ) end
 
 include("postload.lua")
-
-GM.ClientResources = 0
-local function ProcessFolder( Location )
-	local Files, Folders = file.Find( Location .. "*", "GAME" )
-	for _, v in pairs( Files ) do
-		local OurLocation = string.gsub( Location .. v, "gamemodes/" .. FOLDER_NAME .. "/content2/", "" )
-
-		if string.sub( Location, -2 ) ~= "db" and string.sub( Location, -3 ) ~= "txt" then
-			GM.ClientResources = GM.ClientResources + 1
-			resource.AddFile( OurLocation )
-		end
-	end
-
-	for _, v in pairs( Folders ) do
-		if v:lower():find( "tdmcars" ) then continue end
-		ProcessFolder( Location .. v .. "/" )
-	end
-end
-
---[[if game.IsDedicated() then
-	ProcessFolder( "gamemodes/" .. FOLDER_NAME .. "/content2/materials/" )
-	ProcessFolder( "gamemodes/" .. FOLDER_NAME .. "/content2/models/" )
-	ProcessFolder( "gamemodes/" .. FOLDER_NAME .. "/content2/resource/" )
-	ProcessFolder( "gamemodes/" .. FOLDER_NAME .. "/content2/sound/" )
-end]]--
-
---Msg( "Loaded downloadable resources: " .. GM.ClientResources .. "\n" )

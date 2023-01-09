@@ -34,11 +34,11 @@ function GM.ConvertModelInfo( json )
 end
 
 function PLAYER:GetModelInfo()
-	return self.ModelInfo or self:GetPNWVar("ModelInfo")
+	return self.ModelInfo or self:GetPNWVar("ModelInfo") or {}
 end
 
-function PLAYER:GetSex() if self:GetModelInfo() then return self:GetModelInfo().gender else return SEX_MALE end end
-function PLAYER:GetFace() return self:GetModelInfo().face end
+function PLAYER:GetSex() return self:GetModelInfo().gender or SEX_MALE end 
+function PLAYER:GetFace() return self:GetModelInfo().face or 1 end
 
 function GetModelPath( sex, face )
 	if type( sex ) == "string" then

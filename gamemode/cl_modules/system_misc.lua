@@ -19,22 +19,18 @@ LEAVE_DIALOG = function() GAMEMODE.DialogPanel:Hide() end
 
 timer.Create( "ManageSprint", 0.2, 0, function()
 	if IsValid( LocalPlayer() ) then
-		LocalPlayer():CalculateStaminaLoss()
 		
-		if not GAMEMODE.Options_MuteLocalBreath:GetBool() and LocalPlayer():Alive() and LocalPlayer().Stamina and LocalPlayer().Stamina <= 25 then
+		if not GAMEMODE.Options_MuteLocalBreath:GetBool() and LocalPlayer():Alive() and LocalPlayer:GetNWFloat("Stamina") and LocalPlayer:GetNWFloat("Stamina") <= 25 then
 			if not pantingSound then
 				pantingSound = CreateSound( LocalPlayer(), BreathingSound )
 			end
-			
 			if not curPlayingPanting or curPlayingPanting <= CurTime() then
 				curPlayingPanting = CurTime() + DurationOfBreath
 
 				pantingSound:Stop()
 				pantingSound:Play()
 			end
-			
-			local soundLevel = 1 - ( LocalPlayer().Stamina / 25 )
-			
+			local soundLevel = 1 - ( LocalPlayer:GetNWFloat("Stamina") / 25 )
 			if soundLevel ~= lastSoundLevel then
 				pantingSound:ChangeVolume( soundLevel, 1 )
 			end
@@ -51,12 +47,15 @@ timer.Create( "ManageSprint", 0.2, 0, function()
 				if not v.pantingSound then
 					v.pantingSound = CreateSound( v, BreathingSound )
 				end
-				
 				if not v.curPlayingPanting or v.curPlayingPanting <= CurTime() then
 					v.curPlayingPanting = CurTime() + DurationOfBreath
 					
 					v.pantingSound:Stop()
 					v.pantingSound:Play()
+				end
+				local soundLevel = 1 - ( v:GetNWFloat("Stamina") / 25 )
+				if soundLevel ~= lastSoundLevel then
+					pantingSound:ChangeVolume( soundLevel, 1 )
 				end
 			elseif v.pantingSound then
 				v.pantingSound:Stop()

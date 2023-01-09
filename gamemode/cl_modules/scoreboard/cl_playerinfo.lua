@@ -223,7 +223,7 @@ PLAYERINFO.AdminButtons = {
 
 	[10] = { "Demote",
 		function( ply )
-			RunConsoleCommand( "perp_adm_demote", ply:SteamID64() )
+			RunConsoleCommand( "perp_adm_demote", ply:UniqueID() )
 		end
 	},
 }

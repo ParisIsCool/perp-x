@@ -10,69 +10,9 @@
 //      Cage The Beatles     //
 ///////////////////////////--]]
 
-local function InitializeMySQL(func)
-
-	Msg( "Loading MySQL... " )
-
-	--require( "tmysql4" )
-	if tmysql then Msg( "Done\n" ) end
-
-	TOTAL_QUERIES_RAN = 0
-	TOTAL_QUERIES_ERRORED = 0
-
-	local tmysql_connection, error = tmysql.Connect( MySQL.Hostname, MySQL.Username, MySQL.Password, MySQL.Database, MySQL.Port )
-	if tmysql_connection then
-		MsgC(Color(0, 255, 0), 'Succesfully connected to MySQL Database!\n')
-	else
-		print(error)
-		MsgC(Color(255, 0, 0), '***DID NOT connect to MySQL Database!****\n')
-	end
-
-	if not tmysql_connection then
-		if func then
-			func(false, error)
-		end
-		return
-	end
-	if func then
-		func(true)
-	end
-	function tmysql.query( sqlquery, callback, flags, callbackarg )
-		local Trace = debug.getinfo( 2 )
-		local Time = CurTime()
-
-		local function Wrapper( results )
-
-			-- wrap from tmysql4 to tmysql3
-			local new_results = {}
-			for k, v in pairs(results or {}) do
-				if v.error then
-					Error("TMYSQL ERROR! " .. tostring(v.error) .. "\n" .. sqlquery)
-				end
-				if v.data then
-					new_results[k] = v.data
-				end
-			end
-		
-			if not new_results[2] then
-				new_results = new_results[1]
-			end
-		
-			if callback then callback( new_results, results ) end
-		
-		end
-
-		tmysql_connection:Query( sqlquery, Wrapper, flags )
-		TOTAL_QUERIES_RAN = TOTAL_QUERIES_RAN + 1
-	end
-
-	tmysql.escape = function(string)
-		return tmysql_connection:Escape(string)
-	end
-
-	GAMEMODE:LoadOrganizations()
-
-end
+--[[
+	Initialize Gamemode
+]]--
 
 function GM:Initialize()
 
@@ -98,23 +38,9 @@ function GM:Initialize()
 	
 end
 
-concommand.Add("reconnectmysql", function(ply)
-	if IsValid(ply) and not ply:IsSuperAdmin() then return end
-	MsgC(Color(255, 0, 0), 'Attempting to connect to database!!\n')
-	InitializeMySQL(function(didConnect, error)
-		if didConnect then
-			MsgC(Color(0, 255, 0), 'Reconnection successful!\n')
-		else
-			MsgC(Color(0, 255, 0), 'Reconnection FAILED!! Reason: ' .. tostring(error) ..  '\n')
-		end
-	end)
-end)
-
 --[[
-	
 	PLAYER LOADING AND AUTHENTICATING
-
-]]
+]]--
 
 util.AddNetworkString("TimeSync")
 util.AddNetworkString("UpdateMixtures")
@@ -366,7 +292,7 @@ net.Receive("perp_chooseuser", function(len,Player)
 				if Player:GetTimePlayed() < 300 then
 					msg = {
 						{"Welcome to PERP X! Use [ W ] [ A ] [ S ] [ D ] to move and\n[  TAB  ] to open the scoreboard! The rules in the [  TAB  ]\n are enforced on this server!", 15},
-						{"Use [ Y ] to chat locally and [ U ] to chat globally!\nYou may link your discord using /discord to receive perks!", 15},
+						{"Use [ Y ] to chat locally and [ U ] to chat globally!", 15},
 						{"Press [ Q ] to open your inventory. This menu is where\nyou create mixtures, modify genetics, view skills, and see inventory!", 15},
 						{"If you need any help, use [ U ] to ask in OOC for help!", 15}
 					}
@@ -390,6 +316,10 @@ net.Receive("perp_chooseuser", function(len,Player)
 	end )
 
 end)
+
+--[[
+	PLAYER ACCOUNT CREATION
+]]--
 
 util.AddNetworkString("perp_newchar")
 function PLAYER:CreateAccount( InDatabaseAlready )
@@ -453,7 +383,9 @@ local last = {
 }
 
 // Handle the players profile
-
+--[[
+	PLAYER SPAWNING
+]]--
 function GM:PlayerInitialSpawn( Player )
 	Player:SetTeam( TEAM_CITIZEN )
 
@@ -517,6 +449,9 @@ function GM:PlayerInitialSpawn( Player )
 	end
 end
 
+--[[
+	Take Damage
+]]--
 function GM:EntityTakeDamage( ent, dmginfo )
 	local inflictor = dmginfo:GetInflictor()
 	local attacker 	= dmginfo:GetAttacker()
@@ -730,7 +665,6 @@ function GM:PlayerSelectSpawn( ply, locations )
 	return self.BaseClass:PlayerSelectSpawn( ply ), POS, ANGLE
 end
 
-util.AddNetworkString("perp_reset_stam")
 function GM:PlayerSpawn( Player )
 
 	if Player.JobModel then
@@ -764,9 +698,7 @@ function GM:PlayerSpawn( Player )
 	if not Player.DontFixCripple then // BASICALLY, GODSTICK REVIVE DOESN'T DEMOTE MAYOR!
 		Player.Crippled = nil
 
-		net.Start( "perp_reset_stam" ) 
-		net.Send(Player)
-		Player.Stamina = 100
+		Player:SetNWFloat("stamina", 100)
 
 		if Player:Team() == TEAM_MAYOR then
 			for _, v in pairs( player.GetAll() ) do
@@ -792,9 +724,15 @@ function GM:PlayerSpawn( Player )
 			self:PlayerLoadout( Player )
 		end)
 
-		if JOB_DATABASE[Player:Team()].CanEquipInventoryGun then Player:EquipMains() end
+		local jobinfo = JOB_DATABASE[Player:Team()]
+		if jobinfo.CanEquipInventoryGun then Player:EquipMains() end
 
-		local _, pos, angle = self:PlayerSelectSpawn( Player, JOB_DATABASE[Player:Team()].Spawns[game.GetMap()] or {} )
+		if jobinfo.HP then
+			Player:SetMaxHealth( jobinfo.HP )
+			Player:SetHealth( jobinfo.HP )
+		end
+
+		local _, pos, angle = self:PlayerSelectSpawn( Player, jobinfo.Spawns[game.GetMap()] or {} )
 		Player:SetPos( pos )
 		Player:SetEyeAngles( angle )
 	else
@@ -818,12 +756,14 @@ function GM:PlayerSpawn( Player )
 
 	Player:SetGNWVar( "warrented", nil )
 
-	Player:GodEnable()
-	timer.Simple( 10, function()
-		if IsValid( Player ) then
-			Player:GodDisable()
-		end
-	end )
+	if Player:Team() != TEAM_ZOMBIE then
+		Player:GodEnable()
+		timer.Simple( 10, function()
+			if IsValid( Player ) then
+				Player:GodDisable()
+			end
+		end )
+	end
 
 	Player:SetupHands()
 
@@ -1055,25 +995,28 @@ end
 function GM:PlayerLoadout( Player )
 	if not IsValid( Player ) then return end
 
-	if Player.freshLayout then
+	local jobinfo = JOB_DATABASE[Player:Team()]
+
+	if Player.freshLayout or jobinfo.OverwriteGuns then
 		Player:StripWeapons()
 	else
 		Player.freshLayout = nil
 	end
 
-	Player:Give( "roleplay_keys" )
-	Player:Give( "roleplay_fists" )
-	Player:Give( "weapon_physcannon" )
+	if not jobinfo.OverwriteGuns then
+		Player:Give( "roleplay_keys" )
+		Player:Give( "roleplay_fists" )
+		Player:Give( "weapon_physcannon" )
+
+		if Player:IsVIP() or Player:IsAdmin() then
+			Player:Give( "weapon_physgun" )
+		end
+	end
 
 	if Player:IsAdmin() then
 		Player:Give( "god_stick" )
 	end
 
-	if Player:IsVIP() or Player:IsAdmin() then
-		Player:Give( "weapon_physgun" )
-	end
-
-	local jobinfo = JOB_DATABASE[Player:Team()]
 	if not jobinfo then return end
 	for k, v in pairs(jobinfo.Guns or {}) do
 		Player:Give(v)

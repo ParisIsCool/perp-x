@@ -50,8 +50,6 @@ function PANEL:Paint( w, h )
 		self:OnCursorExited_Real()
 	end
 
-	--surface.SetTexture(unOccupied)
-
 	--draw.RoundedBox(0,0,0,w,h,col)
 	
 	local trueAlpha = self.ourAlpha

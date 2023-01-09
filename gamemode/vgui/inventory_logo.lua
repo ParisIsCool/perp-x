@@ -11,11 +11,7 @@
 -- TODO: Clean up
 
 local PANEL = {}
---local unOccupied = Material("paris/predatorinventory.png")
 local unOccupied = Material("paris/asocinventory.png")
---local unOccupied = surface.GetTextureID("pulsareffect/inventory/inv_logo_vg")
---local unOccupied = surface.GetTextureID("perp2/inventory/inv_background_voltage")
---local unOccupied = surface.GetTextureID("pulsareffect/inventory/inv_logo")
 
 function PANEL:Init ( )
 	self:SetVisible(true)
@@ -24,29 +20,6 @@ function PANEL:Init ( )
 	self.ourAlpha = 255
 
 	self.ModelPanel = vgui.Create('DModelPanel', self)
-	--[[self.ModelPanel:SetFOV(40)
-	self.ModelPanel:SetCamPos(Vector(130, 0, 52))
-	self.ModelPanel:SetLookAt(Vector(0,0,52))]]
-	--[[local ply = LocalPlayer()
-	self.ModelPanel:SetModel(ply:GetModel())
-	--self.ModelPanel:SetModel("models/player/mossman.mdl")
-	--self.ModelPanel:SetEntity(ply)
-	self.ModelPanel:SetAnimated(true)
-	self.ModelPanel:GetEntity():SetSequence(10)
-	self.ModelPanel:GetEntity().AutomaticFrameAdvance = true
-	function self.ModelPanel:LayoutEntity( Entity )
-		if ( self.bAnimated ) then
-			self:RunAnimation()
-		end
-		Entity:SetSequence(ply:GetSequenceName(ply:GetSequence()))
-		if Entity:GetModel() != ply:GetModel() then Entity:SetModel(ply:GetModel()) end
-		for k,v in pairs(Entity:GetBodyGroups()) do 
-			if Entity:GetBodygroup(k) != ply:GetBodygroup(k) then
-				Entity:SetBodygroup(k,ply:GetBodygroup(k))
-			end
-		end
-		if Entity:GetSkin() != ply:GetSkin() then Entity:SetSkin(ply:GetSkin()) end
-	end]]
 end
 
 function PANEL:PerformLayout ( )
@@ -57,9 +30,6 @@ function PANEL:PerformLayout ( )
 end
 
 function PANEL:Paint( w, h )
-	--[[local eyepos = self.ModelPanel.Entity:GetBonePosition(self.ModelPanel.Entity:LookupBone("ValveBiped.Bip01_Head1") or 1)
-	self.ModelPanel:SetLookAt(eyepos+Vector(0, 0, -10))
-	self.ModelPanel:SetCamPos(eyepos+Vector(130, 0, -10))]]
 	if (self.NextChangeVisi <= CurTime()) then
 		self.NextChangeVisi = CurTime() + (1 / 200)
 

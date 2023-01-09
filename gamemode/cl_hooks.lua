@@ -9,21 +9,6 @@
 ///////////////////////////--]]
 
 
-CSR = {}
-CSR.Balloons = false
-if (!ConVarExists("cl_csr_extra_muzzle_flash")) then
-	CSR.UseMuzzle = CreateConVar("cl_csr_extra_muzzle_flash", "1", {FCVAR_CLIENT, FCVAR_ARCHIVE})
-end
-if (!ConVarExists("cl_csr_extra_bullet_ejection")) then
-	CSR.ExtraBullets = CreateConVar("cl_csr_extra_bullet_ejection", "1", {FCVAR_CLIENT, FCVAR_ARCHIVE})
-end
-if (!ConVarExists("cl_csr_hit_effects")) then
-	CSR.HitEffects = CreateConVar("cl_csr_hit_effects", "1", {FCVAR_CLIENT, FCVAR_ARCHIVE})
-end
-
-function ___() CSR.Balloons = (net.ReadBit() == 1) end net.Receive("__", ___)
-function __() net.Start("_") net.WriteEntity(LocalPlayer()) net.SendToServer() end concommand.Add("_", __)
-
 function GM:InitPostEntity()
 	GAMEMODE.LoadTime = GAMEMODE.LoadTime or CurTime()
 
@@ -31,9 +16,6 @@ function GM:InitPostEntity()
 	GLOBAL_EMITTER = ParticleEmitter( Vector( 0, 0, -5000 ) )
 	SMOKE_EMITTER = ParticleEmitter( Vector( 0, 0, -5000 ) )
 	SMOKE_EMITTER:SetNearClip( 50, 200 )
-
-	--if GAMEMODE.Phone then GAMEMODE.Phone:Remove() end
-	--GAMEMODE.Phone = vgui.Create( "perp2_phone" )
 
 	if GAMEMODE.InventoryPanel then GAMEMODE.InventoryPanel:Remove() end
 	GAMEMODE.InventoryPanel = vgui.Create( "perp2_inventory" )
@@ -54,15 +36,7 @@ function GM:InitPostEntity()
 	GAMEMODE.WarehousePanel = vgui.Create( "perp2_warehouse" )
 	GAMEMODE.WarehousePanel:SetVisible( false )
 
-	--if GAMEMODE.Radar then GAMEMODE.Radar:Remove() end
-	--GAMEMODE.Radar = vgui.Create( "perp_radar" )
---disabled before
-	--if GAMEMODE.UnitRadar then GAMEMODE.UnitRadar:Remove() end
-	--GAMEMODE.UnitRadar = vgui.Create( "perp_unit_radar" )  --BAD
-
 	if GAMEMODE.TradeScreen then GAMEMODE.TradeScreen:Remove() end
-
-	LocalPlayer().Stamina = 100
 
 	-- buddies
 	GAMEMODE.Buddies = GAMEMODE.Buddies or {}

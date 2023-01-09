@@ -152,12 +152,7 @@ end)
 
 aSoc_Request["aSoc_SetRank"] = function(Player, Admin, ExtraInfo)
     local Rank = ExtraInfo.Rank
-    if not Admin:IsManagementTeam() then
-         -- something really bad has happend
-         -- admin cheating?
-        Admin:Kick()
-        return
-    end
+    if not Admin:IsManagementTeam() then return end
 
     Player:SetRank( Rank, 999999999 )
 

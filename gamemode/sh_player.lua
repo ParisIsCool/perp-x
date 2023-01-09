@@ -12,6 +12,10 @@ if SERVER then
 	util.AddNetworkString("perp_notify")
 	util.AddNetworkString("perp_rp_notify")
 end
+
+--[[
+	NOTIFICATIONS 
+]]--
 function PLAYER:Notify( Text, truefalse )
 	if not IsValid( self ) then return end
 		
@@ -24,6 +28,9 @@ function PLAYER:Notify( Text, truefalse )
 	end
 end
 
+--[[
+	REPUTATION 
+]]--
 function PLAYER:ReputationNotify( Text )
 	if not IsValid( self ) then return end
 		
@@ -34,14 +41,6 @@ function PLAYER:ReputationNotify( Text )
 	else
 		AddNotify( Text, NOTIFY_HINT, 7, true )
 	end
-end
-
-function factorial(num)
-    local computed = 1
-    for i = num, 1, -1 do
-       computed = computed * i
-    end
-    return computed
 end
 
 local maxRank = 1000
@@ -56,10 +55,6 @@ function getRankRP(rank)
     local prev = getRankRP(rank - 1)
     return math.floor(rank ^ 2 + prev * ((rank - 1) * 0.000005)) * 10
 end
-
---[[for i = 1, maxRank do
-    print("Rank " .. i .. ": " .. getRankRP(i) - getRankRP(i-1)) 
-end]]
 
 function PLAYER:IsWarrented()
 	return self:GetGNWVar( "warrented", nil )
@@ -140,6 +135,10 @@ if CLIENT then
 	end)
 end
 
+--[[
+	RP NAME 
+]]--
+
 local FakeName = {
 	["STEAM_0:0:600212122"] = "aSocket.net"
 }
@@ -155,6 +154,10 @@ end
 function PLAYER:GetLastName()
 	return self:GetGNWVar( "rp_lname", "Doe" )
 end
+
+--[[
+	MISC 
+]]--
 
 function PLAYER:HasVehicleOut()
 	return IsValid( Entity( self:GetGNWVar( "Vehicle", -1 ) ) )
@@ -194,12 +197,17 @@ function PLAYER:IsInside() return not self:IsOutside() end
 function PLAYER:GetCash() return math.Round( self:GetPNWVar( "cash", 0 ) ) end
 function PLAYER:GetBank() return math.Round( self:GetPNWVar( "bank", 0 ) ) end
 
+--[[
+	STAMINA 
+]]--
+
+
 function PLAYER:CalculateStaminaLoss()
 	if not IsValid( self ) then return end
 
 	if self.AdminStamina then return end
 
-	if not self.Stamina then self.Stamina = 100 end
+	if not self:GetNWFloat("Stamina") then self:SetNWFloat("Stamina", 100) end
 
 	if self:GetObserverMode() == OBS_MODE_CHASE then return end
 	
@@ -217,9 +225,13 @@ function PLAYER:CalculateStaminaLoss()
 		self.NextStaminaExperience = self.NextStaminaExperience or 5
 
 		if self.LastStaminaSteal + ( GAMEMODE.SprintDecay * ( 1 + ( self:GetSkillLevel( SKILL_STAMINA ) - 1 ) * .2 ) ) <= CurTime() then
-			self.Stamina = math.Clamp( self.Stamina - 1, 0, 100 )
+			if self:Team() == TEAM_ZOMBIE then
+				self:SetNWFloat("Stamina", math.Clamp( self:GetNWFloat("Stamina") - 8, 0, 100 ) )
+			else
+				self:SetNWFloat("Stamina", math.Clamp( self:GetNWFloat("Stamina") - 1, 0, 100 ) )
+			end
 
-			if SERVER and self.Stamina == 25 then
+			if SERVER and self:GetNWFloat("Stamina") == 25 then
 				self:SetGNWVar( "tired", 1 )
 			end
 			
@@ -227,7 +239,7 @@ function PLAYER:CalculateStaminaLoss()
 			self.LastStaminaAdd = CurTime()
 			
 			self.NextStaminaExperience = self.NextStaminaExperience - 1
-			if self.Stamina ~= 0 and self.NextStaminaExperience == 0 then
+			if self:GetNWFloat("Stamina") ~= 0 and self.NextStaminaExperience == 0 then
 				self.NextStaminaExperience = 5
 				
 				if SERVER then self:GiveExperience( SKILL_STAMINA, GAMEMODE.ExperienceForSprint ) end
@@ -238,9 +250,13 @@ function PLAYER:CalculateStaminaLoss()
 		self.LastStaminaAdd = self.LastStaminaAdd or 0
 		
 		if self.LastStaminaAdd + ( GAMEMODE.SprintDecay * 6 ) <= CurTime() then
-			self.Stamina = math.Round( math.Clamp( self.Stamina + 1 + ( self:GetSkillLevel( SKILL_STAMINA ) - 1 ) * .1, 0, 100 ) )
+			if self:Team() == TEAM_ZOMBIE then
+				self:SetNWFloat("Stamina", math.Round( math.Clamp( self:GetNWFloat("Stamina") + 4 + ( self:GetSkillLevel( SKILL_STAMINA ) - 1 ) * .4, 0, 100 ) ) )
+			else
+				self:SetNWFloat("Stamina", math.Round( math.Clamp( self:GetNWFloat("Stamina") + 1 + ( self:GetSkillLevel( SKILL_STAMINA ) - 1 ) * .1, 0, 100 ) ) )
+			end
 			
-			if SERVER and self.Stamina >= 26 and self:GetGNWVar( "tired" ) then
+			if SERVER and self:GetNWFloat("Stamina") >= 26 and self:GetGNWVar( "tired" ) then
 				self:SetGNWVar( "tired", nil )
 			end
 			
@@ -272,11 +288,12 @@ if SERVER then
 	concommand.Add("adminstamina", function(ply)
 		if not ply:IsLeader() then return end
 		ply.AdminStamina = not ply.AdminStamina
-		ply:SendLua("LocalPlayer().AdminStamina = not LocalPlayer().AdminStamina")
 	end)
 end
 
-
+--[[
+	TOOLTIPS 
+]]--
 
 function PLAYER:SendToolTip(tip,time)
 	if CLIENT then
@@ -299,11 +316,5 @@ if SERVER then
 else
 	net.Receive("sendperptooltip", function()
 		LocalPlayer():SendToolTip(net.ReadString(),net.ReadInt(32) or 10)
-	end)
-end
-
-if SERVER then
-	concommand.Add("testtooltip", function(ply)
-		ply:SendToolTip('This is a test tooltip to try to\ntest the features of the tooltip.\nPress [ ENTER ] to continue.\nA [ A ] B [ B ] C [ C ] ABC [ ABC ]',10)
 	end)
 end

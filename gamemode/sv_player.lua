@@ -180,22 +180,24 @@ function PLAYER:GiveExperience( SkillID, XP )
 end
 
 function PLAYER:FindRunSpeed()
-	if not self.Stamina then return end
+	if not self:GetNWFloat("Stamina") then return end
 	
 	self.LastSetSprint = self.LastSetSprint or ""
 	
 	local newSetSprint = { 200, 300 }
 	if self.CurrentlyArrested then
 		newSetSprint = { 80, 80 }
+	elseif self:Team() == TEAM_ZOMBIE then
+		newSetSprint = { 250, 400 }
 	elseif self.Crippled then
 		newSetSprint = { 100, 100 }
 	else
-		if self.Stamina > 0 and self:GetNWFloat("Hunger") > 0 then
+		if self:GetNWFloat("Stamina") > 0 and self:GetNWFloat("Hunger") > 0 then
 			newSetSprint = { 200, 300 }
 		else
 			if self:GetNWFloat("Hunger") <= 0 and CurTime() > (self.LastHungerNotif or 0) then
 				self:Notify("You don't have enough energy to run. Find something to eat!")
-				self.LastHungerNotif = CurTime() + 20
+				self.LastHungerNotif = CurTime() + 60
 			end
 			newSetSprint = { 200, 200 }
 		end
@@ -527,9 +529,7 @@ function PLAYER:PERPSave()
 		end
 	end
 
-	for k, v in pairs(self["PERP_ChangedAchivements"] or {}) do
-		tmysql.query( Format( "UPDATE `achievements` SET `progress`='%i' WHERE `id`='%i' AND `id`='%s';", v, self.PERPID, k ) )
-	end
+	self:SaveAchievements()
 
 	tmysql.query( Format( Query( "SAVEACCOUNT" ),
 		self:GetPNWVar( "cash", 0 ), 								-- Money

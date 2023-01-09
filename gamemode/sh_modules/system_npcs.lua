@@ -156,10 +156,6 @@ else
 			end
 		end
 
-		if NearestNPC then
-			LocalPlayer():ForceEyeAngles( NearestNPC )
-		end
-
 		NPC_DATABASE[ ID ].OnTalk( LocalPlayer() )
 	end )
 end

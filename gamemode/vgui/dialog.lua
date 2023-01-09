@@ -188,7 +188,6 @@ end
 
 function PANEL:Hide ( )
 	self:SetVisible(false)
-	LocalPlayer():ClearForcedEyeAngles()
 	self:ClearDialog()
 end
 

@@ -85,7 +85,7 @@ aSoc.quickMenu.functions = {
     },
     {
         ["Title"] = "Set Rank",
-        ["Rank"] = aSoc.ManagementRank,
+        ["Rank"] = function(ply) return ply:IsManagementTeam() end,
         ["func"] = function(ply)
             local curRankPrio = LocalPlayer():GetRankPriority()
             local ranks = {}
@@ -116,7 +116,7 @@ aSoc.quickMenu.functions = {
     },
     {
         ["Title"] = "Run Function",
-        ["Rank"] = aSoc.ManagementRank,
+        ["Rank"] = function(ply) return ply:IsManagementTeam() end,
         ["func"] = function(ply)
             local funcs = {}
             local playerobject = FindMetaTable("Player")
@@ -303,7 +303,7 @@ concommand.Add("+aSoc_qm", function()
     EssentialBox:SetPos(10,5+SetPlayer:GetTall()+select(2,SetPlayer:GetPos()))
     EssentialBox.p_layout = vgui.Create("DListLayout", EssentialBox)
     EssentialBox.p_layout:SetPos(0,0)
-    EssentialBox.p_layout:SetSize(select(1,EssentialBox:GetSize())-10,select(2,EssentialBox:GetSize()))
+    EssentialBox.p_layout:SetSize(select(1,EssentialBox:GetSize()),select(2,EssentialBox:GetSize()))
     function EssentialBox.p_layout:OnModified()
         timer.Simple(0, function()
             local tab = {}
@@ -335,7 +335,7 @@ concommand.Add("+aSoc_qm", function()
 
         for k, v in ipairs(newlist) do
 
-            if v.Rank and LocalPlayer():GetRankPriority() > aSoc.Ranks[v.Rank].Priority then continue end
+            if v.Rank then if not v.Rank(LocalPlayer()) then continue end end
 
             local Button = self.p_layout:Add("aSoc_Button")
             if list == aSoc.quickMenu.functions then

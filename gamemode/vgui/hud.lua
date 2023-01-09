@@ -921,7 +921,7 @@ function GM:HUDPaint( )
 		surface_SetDrawColor(109, 191, 227)
 		surface_DrawRect(131 + safezone, Height-23-safezone, armor, 9)
 
-		local staminaMeter = mathClamp(locply.Stamina or 100, 0, 100) * 2.40
+		local staminaMeter = mathClamp(locply:GetNWFloat("Stamina") or 100, 0, 100) * 2.40
 		surface_SetDrawColor(90,62,18)
 		surface_DrawRect(10 + safezone, Height-12-safezone, 240, 4)
 
@@ -1177,6 +1177,19 @@ surface_CreateFont("MainFont", {
     size = 30,
 } )
 
+function DrawRainbowText( x, y, text, font, align, yalign, speed, strength )
+	local letters = string.Explode( "", text )
+	surface.SetFont(font)
+	if (align == TEXT_ALIGN_CENTER) then x = (surface.GetTextSize(text) * -0.5) + x end
+	if (align == TEXT_ALIGN_RIGHT) then x = (surface.GetTextSize(text) * -1) + x end
+	local curx = 0
+	local w, h = 0,0
+	for k, v in pairs(letters) do
+		draw.SimpleText( v, font, curx + x + w, y, HSVToColor( ((CurTime() * speed * -20 ) + (k*strength*5)) % 360, 1, 1 ), TEXT_ALIGN_LEFT, yalign )
+		curx = curx + w
+		w, h = surface.GetTextSize(v)
+	end
+end
 
 local checkx = Material("hud/checkpoint.png")
 local circle = Material("hud/circle.png")

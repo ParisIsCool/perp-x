@@ -21,7 +21,7 @@ VALID_NAME_CHARACTERS	=	{ "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k",
 
 SHOW_WEAPON_EQUIP_NOTIFICATINS = true
 
-DEVELOPERS = {}
+local DEVELOPERS = {}
 DEVELOPERS["STEAM_0:0:89634933"] = true
 
 function PLAYER:IsDeveloper()
@@ -43,47 +43,6 @@ MAX_CASH 			= 1000000
 
 WEED_GROW_TIME 		= 600
 COCAINE_GROW_TIME 	= 600
-
-
-HEADLIGHT_COLORS = {
-	{ Color( 255, 255, 255, 500 ), 	Color( 255, 255, 255, 255 ), 	"White" },
-	{ Color( 255, 0, 0, 500 ), 	Color( 255, 0, 0, 255 ), 	"Red" },
-	{ Color( 0, 255, 0, 500 ), 	Color( 0, 255, 0, 255 ), 	"Green" },
-	{ Color( 127, 255, 0, 500 ), 	Color( 127, 255, 0, 255 ), 	"Lime Green" },
-	{ Color( 0, 0, 255, 500 ), 	Color( 0, 0, 255, 255 ),	"Blue" },
-	{ Color( 95, 159, 160, 500 ), 	Color( 95, 159, 160, 255 ),	"Blue #1" },
-	{ Color( 152, 245, 255, 500 ), 	Color( 152, 245, 255, 255 ), 	"Blue #2" },
-	{ Color( 100, 149, 237, 500 ), 	Color( 100, 149, 237, 255 ), 	"Blue #3" },
-	{ Color( 16, 78, 139, 500 ), 	Color( 16, 78, 139, 255 ), 	"Blue #4" },
-	{ Color( 0, 0, 128, 500 ), 	Color( 0, 0, 128, 255 ), 	"Navy Blue" },
-	{ Color( 0, 255, 255, 500 ), 	Color( 0, 255, 255, 255 ), 	"Teal" },
-	{ Color( 255, 255, 0, 500 ), 	Color( 255, 255, 0, 255 ), 	"Yellow" },
-	{ Color( 255, 20, 147, 500 ), 	Color( 255, 20, 147, 255 ),	"Pink" },
-	{ Color( 255, 125, 0, 500 ),	Color( 255, 125, 0, 255 ), 	"Orange" },
-	{ Color( 255, 0, 255, 500 ), 	Color( 255, 0, 255, 255 ), 	"Violet" },
-	{ Color( 255, 215, 0, 500 ), 	Color( 255, 215, 0, 255 ), 	"Gold" },
-	{ Color( 153, 50, 204, 500 ), 	Color( 153, 50, 204, 255 ), 	"Purple" },
-}
-
-UNDERGLOW_COLORS = {
-	{ Color( 255, 255, 255, 500 ), 	Color( 255, 255, 255, 255 ),	"White" },
-	{ Color( 255, 0, 0, 500 ), 	Color( 255, 0, 0, 255 ),        "Red" },
-	{ Color( 0, 255, 0, 500 ), 	Color( 0, 255, 0, 255 ),        "Green" },
-	{ Color( 127, 255, 0, 500 ), 	Color( 127, 255, 0, 255 ), 	"Lime Green" },
-	{ Color( 0, 0, 255, 500 ),	Color( 0, 0, 255, 255 ),        "Blue" },
-	{ Color( 95, 159, 160, 500 ), 	Color( 95, 159, 160, 255 ), 	"Blue #1" },
-	{ Color( 152, 245, 255, 500 ), 	Color( 152, 245, 255, 255 ),	"Blue #2" },
-	{ Color( 100, 149, 237, 500 ), 	Color( 100, 149, 237, 255 ),	"Blue #3" },
-	{ Color( 16, 78, 139, 500 ), 	Color( 16, 78, 139, 255 ), 	"Blue #4" },
-	{ Color( 0, 0, 128, 500 ), 	Color( 0, 0, 128, 255 ),        "Navy Blue" },
-	{ Color( 0, 255, 255, 500 ), 	Color( 0, 255, 255, 255 ), 	"Teal" },
-	{ Color( 255, 255, 0, 500 ), 	Color( 255, 255, 0, 255 ), 	"Yellow" },
-	{ Color( 255, 20, 147, 500 ), 	Color( 255, 20, 147, 255 ),	"Pink" },
-	{ Color( 255, 125, 0, 500 ), 	Color( 255, 125, 0, 255 ), 	"Orange" },
-	{ Color( 255, 0, 255, 500 ), 	Color( 255, 0, 255, 255 ), 	"Violet" },
-	{ Color( 255, 215, 0, 500 ), 	Color( 255, 215, 0, 255 ), 	"Gold" },
-	{ Color( 153, 50, 204, 500 ), 	Color( 153, 50, 204, 255 ), 	"Purple" },
-}
 
 GM.SprintDecay = .22
 GM.FistDamage = 5

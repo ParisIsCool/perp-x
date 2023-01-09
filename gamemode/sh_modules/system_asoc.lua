@@ -14,7 +14,10 @@ PLAYER = FindMetaTable("Player")
 
 aSoc = aSoc or {}
 
-aSoc.Version = "22.5.26"
+aSoc.discord = aSoc.discord or {}
+aSoc.discord.enabled = false
+
+aSoc.Version = "23.1.8"
 
 local HardcodedRanks = {
     ["aSoc:Owner"] = {
@@ -173,8 +176,16 @@ function PLAYER:IsRankLowerThan(ply)
     return aSocRanks[self:GetAsocRank()].Priority >= aSocRanks[ply:GetNWString("Rank") or aSoc.DefaultRank].Priority
 end
 
+function PLAYER:IsRankHigherRank(rank)
+    return aSocRanks[self:GetAsocRank()].Priority < aSocRanks[rank or aSoc.DefaultRank].Priority
+end
+
 function PLAYER:IsManagementTeam()
-    return aSocRanks[self:GetAsocRank()].Priority <= aSocRanks[aSoc.ManagementRank].Priority
+    if aSoc.discord.enabled then
+        return aSocRanks[self:GetAsocRank()].Priority >= aSocRanks[aSoc.ManagementRank].Priority
+    else
+        return self:GetNWBool("isManagement")
+    end
 end
 
 function PLAYER:IsLeadershipTeam()

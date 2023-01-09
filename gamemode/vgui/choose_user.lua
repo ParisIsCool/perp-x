@@ -23,6 +23,14 @@ surface.CreateFont("ChooseCharText", {
   antialias = true,
 })
 
+if not GAME_HAS_STARTED then
+  -- lets make the screen black until this pops up.
+  hook.Add("PostRenderVGUI", "BeginningBlackScreen", function()
+    draw.RoundedBox(0, 0, 0, ScrW(), ScrH(), Color(17,17,17))
+  end)
+end
+
+GAME_HAS_STARTED = true
 
 local function ShowUserSelectionScreen(Users)
   if not LocalPlayer().IsVIP then -- function isnt initialized yet oops
@@ -218,4 +226,4 @@ local function ShowUserSelectionScreen(Users)
 
 end
 
-net.Receive("perp_chooseuser", function() ShowUserSelectionScreen(net.ReadTable()) end)
+net.Receive("perp_chooseuser", function() hook.Remove("PostRenderVGUI","BeginningBlackScreen") ShowUserSelectionScreen(net.ReadTable()) end)

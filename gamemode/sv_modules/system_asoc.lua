@@ -10,11 +10,12 @@ aSoc.VPN_RANGE = "20410195"
 
 -- Hardcoded Ranks, please label them
 aSoc.hardcode = {}
-aSoc.hardcode["STEAM_0:0:89634933"] = "aSoc:Owner"              -- paris
+--aSoc.hardcode["STEAM_0:0:89634933"] = "aSoc:Owner"              -- paris
 aSoc.hardcode["STEAM_0:0:600212122"] = "aSoc:SeniorAdmin"       -- paris alt
 
 -- Discord configuration
 aSoc.discord = {}
+aSoc.discord.enabled = false
 aSoc.discord.users = {} -- SteamID64: DiscordID
 aSoc.discord.guild = "772682371303735326"
  
@@ -26,12 +27,7 @@ aSoc.roleConfig = {
     ["772683689850830859"] = 'aSoc:Gold',
 }
 
--- Temporary Logging
-aSoc.log = function(msg)
-    print("[system_asoc] " .. msg)
-end
-
--- gmod retarded
+-- TREVORS LIBRARYS :D
 local function recursiveReplace(tbl)
     local t = {}
     for k, v in pairs(tbl) do
@@ -47,7 +43,34 @@ local function recursiveReplace(tbl)
     end
     return t
 end
- 
+
+local function stringtohex(str)
+    return (str:gsub('.', function (c)
+        return string.format('%02X', string.byte(c))
+    end))
+end
+
+local function getValues(tbl)
+    local t = {} 
+    for _, v in pairs(tbl) do
+        table.insert(t, v)
+    end
+    return t
+end
+
+-- much more efficient than a "getKeyFromValue" function loop
+local function inverseTable(tbl) 
+    local t = {}
+    for k, v in pairs(tbl) do
+        t[v] = k
+    end
+    return t
+end
+
+-- Temporary Logging
+aSoc.log = function(msg)
+    print("[system_asoc] " .. msg)
+end
 
 -- HTTP onSuccess
 local function onSuccess(route, body, cb)
@@ -56,8 +79,6 @@ local function onSuccess(route, body, cb)
         if data == nil then data = {["error"] = "Malformed response."} end
         aSoc.log("ERROR: Web Request - '" .. route .. "' | '" .. data.error .. "'")
     end
-
-    local parsedBecauseGMODisFuckingRetarded = {}
     cb(recursiveReplace(data))
 end
 
@@ -112,20 +133,6 @@ local function getDiscordID(steam, cb)
     end)
 end
 
--- borrowed code
-local function stringtohex(str)
-    return (str:gsub('.', function (c)
-        return string.format('%02X', string.byte(c))
-    end))
-end
-
--- I would use player.GetCount(), but this includes bots.
-local function getPlayerCount()
-    local count = 0
-    for _, _ in pairs(player.GetHumans()) do count = count + 1 end
-    return count
-end
-
 -- Update join status/username.
 local function updateJoinStatus(ply, useTag)
     print("[system_asoc] Updating join status for " .. ply:Name(), useTag)
@@ -137,18 +144,11 @@ local function updateJoinStatus(ply, useTag)
     end
 
     local steam = ply:SteamID64()
-    local count = useTag and getPlayerCount() or getPlayerCount() - 1
+    local count = useTag and player.GetHumans() or player.GetHumans() - 1
     aSoc.get(url, {['guild'] = aSoc.discord.guild, ['name'] = stringtohex(ply:Name()), ['steam'] = steam, ['count'] = count })
 end
 
--- Sync user permissions to discord roles.
-aSoc.syncPermissions = function(ply)
-
-    if aSoc.hardcode and aSoc.hardcode[ply:SteamID()] then
-        ply:SetRank(aSoc.hardcode[ply:SteamID()])
-        return
-    end
-
+local function discordSync(ply)
     -- Get Discord ID if applicable
     local steam = ply:SteamID64()
     getDiscordID(steam, function(data)
@@ -178,60 +178,90 @@ aSoc.syncPermissions = function(ply)
     end)
 end
 
-local function getValues(tbl)
-    local t = {} 
-    for _, v in pairs(tbl) do
-        table.insert(t, v)
-    end
-    return t
+-- syncs user permissions to tmysql database.
+local function databaseSync(ply)
+    local steam = ply:SteamID()
+    local rank = "aSoc:Default"
+    local query = "SELECT * FROM `aSoc_users` WHERE `steamid` = '" .. steam .. "'"
+    tmysql.query(query, function(Results)
+        if Results[1] then
+            rank = Results[1].rank
+            ply:SetNWBool("isManagement", Results[1].management == 1)
+        end
+        ply:SetRank(rank)
+    end)
 end
 
--- much more efficient than a "getKeyFromValue" function loop
-local function inverseTable(tbl) 
-    local t = {}
-    for k, v in pairs(tbl) do
-        t[v] = k
+-- master sync function.
+aSoc.syncPermissions = function(ply)
+    if aSoc.hardcode and aSoc.hardcode[ply:SteamID()] then
+        ply:SetRank(aSoc.hardcode[ply:SteamID()])
+        ply:SetNWBool("isManagement", aSoc.Ranks[aSoc.hardcode[ply:SteamID()]].Priority >= aSoc.Ranks[aSoc.ManagementRank].Priority )
+        return
     end
-    return t
+    if aSoc.discord.enabled then
+        discordSync(ply)
+    else
+        databaseSync(ply)
+    end
 end
 
 aSoc.syncAllPermissions = function()
 
-    local steams = {} -- Get all steam identifiers.
-    for _, v in ipairs(player.GetHumans()) do
-        if aSoc.hardcode[v:SteamID()] then continue end
-        table.insert(steams, v:SteamID64())
-    end
+    if #player.GetHumans() == 0 then return end
 
-    if #steams == 0 then return end
-    getDiscordID(steams, function(data) -- Retrieve all discord identifiers. 
-        if not data or type(data.id) ~= 'table' or #table.ClearKeys(data.id) == 0 then return end
-        getDiscordRoles(table.ClearKeys(data.id), function(_data)
-            if not _data.roles then -- If api could not be reached.
-                for _, v in ipairs(steams) do -- Reset all users to aSoc:Default
-                    if not data.id or not data.id[v] then player.GetBySteamID64(v):SetRank("aSoc:Default") end
-                end
-                return
-            end
-            
-            for _, v in ipairs(steams) do -- Reset user if they do not have any roles.
-                if not data.id or not data.id[v] or not _data.roles[data.id[v]] then -- If api could not be reached, the user does not have a discord id, or the user does not have any roles.
-                    player.GetBySteamID64(v):SetRank("aSoc:Default") -- Reset to asoc default.
-                end
-            end
+    if aSoc.discord.enabled then
+        local steams = {} -- Get all steam identifiers.
+        for _, v in ipairs(player.GetHumans()) do
+            if aSoc.hardcode[v:SteamID()] then continue end
+            table.insert(steams, v:SteamID64())
+        end
 
-            local inv = inverseTable(data.id)
-            for id, roles in pairs(_data.roles) do
-                local rank = "aSoc:Default"
-                for _, v in ipairs(roles) do
-                    if aSoc.roleConfig[v] and aSoc.Ranks[aSoc.roleConfig[v]].Priority < aSoc.Ranks[rank].Priority then
-                        rank = aSoc.roleConfig[v]
+        if #steams == 0 then return end
+        getDiscordID(steams, function(data) -- Retrieve all discord identifiers. 
+            if not data or type(data.id) ~= 'table' or #table.ClearKeys(data.id) == 0 then return end
+            getDiscordRoles(table.ClearKeys(data.id), function(_data)
+                if not _data.roles then -- If api could not be reached.
+                    for _, v in ipairs(steams) do -- Reset all users to aSoc:Default
+                        if not data.id or not data.id[v] then player.GetBySteamID64(v):SetRank("aSoc:Default") end
+                    end
+                    return
+                end
+                
+                for _, v in ipairs(steams) do -- Reset user if they do not have any roles.
+                    if not data.id or not data.id[v] or not _data.roles[data.id[v]] then -- If api could not be reached, the user does not have a discord id, or the user does not have any roles.
+                        player.GetBySteamID64(v):SetRank("aSoc:Default") -- Reset to asoc default.
                     end
                 end
-                player.GetBySteamID64(inv[id]):SetRank(rank)
+
+                local inv = inverseTable(data.id)
+                for id, roles in pairs(_data.roles) do
+                    local rank = "aSoc:Default"
+                    for _, v in ipairs(roles) do
+                        if aSoc.roleConfig[v] and aSoc.Ranks[aSoc.roleConfig[v]].Priority < aSoc.Ranks[rank].Priority then
+                            rank = aSoc.roleConfig[v]
+                        end
+                    end
+                    player.GetBySteamID64(inv[id]):SetRank(rank)
+                end
+            end)
+        end)
+    else
+        local steams = ""
+        local n = 0
+        for _, v in ipairs(player.GetHumans()) do
+            n = n + 1
+            if aSoc.hardcode[v:SteamID()] then continue end
+            local comma = ""
+            if #player.GetHumans() != n then comma = "," end
+            steams = steams .. "'" .. v:SteamID() .. "'" .. comma
+        end
+        tmysql.query("SELECT * FROM `aSoc_users` WHERE `steamid` IN (" .. steams .. ");", function(Results)
+            for _, v in pairs(Results or {}) do
+                player.GetBySteamID(v.steamid):SetRank(v.rank)
             end
         end)
-    end)
+    end
 end
 
 -- PlayerAuthed
@@ -240,7 +270,9 @@ hook.Add('PlayerAuthed', 'aSoc_PlayerInitialSpawn', function(ply)
     aSoc.syncPermissions(ply)
 
     -- Update join status/username.
-    updateJoinStatus(ply, true)
+    if aSoc.discord.enabled then
+        updateJoinStatus(ply, true)
+    end
 
 end) 
 
@@ -259,9 +291,22 @@ end
 -- PlayerDisconnected
 hook.Add('PlayerDisconnected', 'aSoc_PlayerDisconnected', function(ply)
     -- Update join status/username.
-    updateJoinStatus(ply, false)
+    if aSoc.discord.enabled then
+        updateJoinStatus(ply, false)
+    end
 end)
 
+-- sets the player's rank in the database
+function PLAYER:SetDatabaseRank(rank)
+    local steam = self:SteamID()
+    tmysql.query("SELECT * FROM `aSoc_users` WHERE `steamid` = '" .. steam .. ";'", function(Results)
+        if Results[1] then
+            tmysql.query("UPDATE `aSoc_users` SET `rank` = '"..rank.."' WHERE `steamid` = '" .. steam .. "';")
+        else
+            tmysql.query("INSERT INTO `aSoc_users` (`rank`, `steamid`) VALUES ('"..rank.."', '" .. steam .. "');")
+        end
+    end)
+end
 
 -- Set Rank.
 function PLAYER:SetRank(rank)

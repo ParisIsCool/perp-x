@@ -14,7 +14,8 @@ GM.Adverts = {
 }
 local pos = 1
 
-timer.Create(	"AdvertTimer", 120, 0, function()
+timer.Create( "AdvertTimer", 120, 0, function()
+	if not aSoc.discord.enabled then if string.find(GAMEMODE.Adverts[pos],'/discord') then pos = pos + 1 end end
 	for k,v in pairs(player.GetAll()) do
 		v:ChatPrint(GAMEMODE.Adverts[pos])
 	end

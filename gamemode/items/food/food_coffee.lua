@@ -38,7 +38,7 @@ if SERVER then
 
 		Player:EmitSound( "perp/drinking.mp3" )
 		
-		Player.Stamina = math.Clamp( Player.Stamina + toAddStam, 0, 100 )
+		Player:SetNWFloat("Stamina", math.Clamp( Player:GetNWFloat("Stamina") + toAddStam, 0, 100 ) )
 		Player:AddHunger( 12 )
 
 		return true
@@ -47,11 +47,6 @@ else
 	function ITEM.OnUse()	
 		if GAMEMODE.LastAte and GAMEMODE.LastAte + 1 > os.time() then return surface.PlaySound( "buttons/button10.wav" ) end
 		GAMEMODE.LastAte = os.time()
-
-		--surface.PlaySound( "perp/drinking.mp3" )
-		
-		LocalPlayer().Stamina = math.Clamp( LocalPlayer().Stamina + toAddStam, 0, 100 )
-		
 		return true
 	end
 end

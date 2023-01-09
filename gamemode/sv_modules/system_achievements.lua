@@ -15,7 +15,7 @@ function PLAYER:LoadAchievements()
         if not Results[1] or not Results[1].data then 
             net.Start("PERP_LoadAchievements")
             net.WriteTable({})
-             net.Send(self)
+            net.Send(self)
             return
         end
         local PERP_Achievements = util.JSONToTable(Results[1].data) or {}

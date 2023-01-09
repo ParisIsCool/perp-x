@@ -11,8 +11,40 @@
 local mat_Overlay = Material("models/props_c17/fisheyelens")
 local effectlerp = 0
 local effectlerpinf = 0
+local zombielerp = 0
+local zombielerpinf = 0
 hook.Add( "RenderScreenspaceEffects", "ScreenEffects", function()
 	if not IsValid( LocalPlayer() ) then return end
+
+	if LocalPlayer():Team() == TEAM_ZOMBIE then
+		DrawMotionBlur( 0.06, 0.8*zombielerp, 0.03 )
+		zombielerpinf = math.Clamp( zombielerpinf + 0.0025, 0, 1 )
+		LocalPlayer().NoiceSound:Play()
+		LocalPlayer().HeartSound:Play()
+		
+		LocalPlayer().HeartSound:ChangePitch( 80, 0 )
+		LocalPlayer().HeartSound:ChangeVolume( 1, 0 )
+		LocalPlayer().NoiceSound:ChangePitch( 40, 0 )
+		LocalPlayer().NoiceSound:ChangeVolume( 0.3, 0 )
+	elseif LocalPlayer().NoiceSound then
+		LocalPlayer().NoiceSound:Stop()
+		LocalPlayer().HeartSound:Stop()
+		zombielerpinf = 0
+	end
+	local zombielerp_neg = 1 - zombielerp
+	local tab = {}
+	tab[ "$pp_colour_addr" ] = 0
+	tab[ "$pp_colour_addg" ] = 0
+	tab[ "$pp_colour_addb" ] = 0
+	tab[ "$pp_colour_brightness" ] = math.sin( CurTime() * 0.25 ) * 0.2 * zombielerp
+	tab[ "$pp_colour_contrast" ] = 1
+	tab[ "$pp_colour_colour" ] = math.sin( CurTime() * 2 ) * 0.5 * zombielerp + (zombielerp_neg*1)
+	tab[ "$pp_colour_mulr" ] = ( math.sin( CurTime() * 3 ) * 5 ) * zombielerp + (zombielerp_neg*1)
+	tab[ "$pp_colour_mulg" ] = ( math.sin( CurTime() * 3.5 ) * 3 ) * zombielerp + (zombielerp_neg*1)
+	tab[ "$pp_colour_mulb" ] = ( math.sin( CurTime() * 1.5 ) * 1.5 ) * zombielerp + (zombielerp_neg*1)
+
+	DrawColorModify( tab )
+	zombielerp = Lerp(FrameTime()*2,zombielerp,zombielerpinf)
 
 	effectlerp = Lerp(FrameTime()*5,effectlerp,effectlerpinf)
 
@@ -20,7 +52,7 @@ hook.Add( "RenderScreenspaceEffects", "ScreenEffects", function()
 		local iMPH = LocalPlayer():GetVehicle():GetVelocity():Length() / 17.6
 		if iMPH > 80 then
 			DrawMotionBlur( 0.2, ( iMPH - 80 ) * 0.015, FrameTime() )
-			effectlerpinf = -0.0005*( iMPH - 80 )
+			effectlerpinf = -0.0007*( iMPH - 80 )
 		end
 		if iMPH > 60 then
 			-- stolen from gmod source code

@@ -16,6 +16,81 @@ MySQL = {
 	Port 	 = 3306,							-- MySQL Port
 }
 
+function InitializeMySQL(func)
+
+	Msg( "Loading MySQL... " )
+
+	if tmysql then Msg( "Done\n" ) end
+
+	TOTAL_QUERIES_RAN = 0
+	TOTAL_QUERIES_ERRORED = 0
+
+	local tmysql_connection, error = tmysql.Connect( MySQL.Hostname, MySQL.Username, MySQL.Password, MySQL.Database, MySQL.Port )
+	if tmysql_connection then
+		MsgC(Color(0, 255, 0), 'Succesfully connected to MySQL Database!\n')
+	else
+		print(error)
+		MsgC(Color(255, 0, 0), '***DID NOT connect to MySQL Database!****\n')
+	end
+
+	if not tmysql_connection then
+		if func then
+			func(false, error)
+		end
+		return
+	end
+	if func then
+		func(true)
+	end
+	function tmysql.query( sqlquery, callback, flags, callbackarg )
+		local Trace = debug.getinfo( 2 )
+		local Time = CurTime()
+
+		local function Wrapper( results )
+
+			-- wrap from tmysql4 to tmysql3
+			local new_results = {}
+			for k, v in pairs(results or {}) do
+				if v.error then
+					Error("TMYSQL ERROR! " .. tostring(v.error) .. "\n" .. sqlquery)
+				end
+				if v.data then
+					new_results[k] = v.data
+				end
+			end
+		
+			if not new_results[2] then
+				new_results = new_results[1]
+			end
+		
+			if callback then callback( new_results, results ) end
+		
+		end
+
+		tmysql_connection:Query( sqlquery, Wrapper, flags )
+		TOTAL_QUERIES_RAN = TOTAL_QUERIES_RAN + 1
+	end
+
+	tmysql.escape = function(string)
+		return tmysql_connection:Escape(string)
+	end
+
+	GAMEMODE:LoadOrganizations()
+
+end
+
+concommand.Add("reconnectmysql", function(ply)
+	if IsValid(ply) and not ply:IsSuperAdmin() then return end
+	MsgC(Color(255, 0, 0), 'Attempting to connect to database!!\n')
+	InitializeMySQL(function(didConnect, error)
+		if didConnect then
+			MsgC(Color(0, 255, 0), 'Reconnection successful!\n')
+		else
+			MsgC(Color(0, 255, 0), 'Reconnection FAILED!! Reason: ' .. tostring(error) ..  '\n')
+		end
+	end)
+end)
+
 //This is only a temporary solution and the best would be to change to mysqloo completely
 //A few incompatibilities:
 //Mysql Bit fields are returned as numbers instead of a single char

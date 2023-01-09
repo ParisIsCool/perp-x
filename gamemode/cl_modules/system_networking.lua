@@ -255,7 +255,3 @@ net.Receive( "perp_bomb", function()
 		effectdata:SetOrigin( pos )
 	util.Effect( "Explosion", effectdata, true, true )
 end )
-
-net.Receive( "perp_reset_stam", function()
-	LocalPlayer().Stamina = 100
-end )

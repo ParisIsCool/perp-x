@@ -188,9 +188,18 @@ function PLAYER:Init()
 	self.Avatar:SetMouseInputEnabled( false )
 	self.Avatar:SetVisible( false )
 
-	self.Name = Label( "Unknown", self )
-	self.Name:SetFont( "ScoreboardName" )
-	self.Name:SetColor( Color( 255, 255, 255 ) )
+	self.Name = vgui.Create("DPanel", self)
+	self.Name.Font = "ScoreboardName"
+	self.Name.Color = Color( 255, 255, 255 )
+	function self.Name:Paint(w,h)
+		DisableClipping(true)
+		if not self.Rainbow then
+			draw.SimpleText( self.Text, self.Font, 0, 0, self.Color, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP )
+		else
+			DrawRainbowText( 0, 0, self.Text, self.Font, self.Color, TEXT_ALIGN_LEFT, TEXT_ALIGN_TOP, 1, 1 )
+		end
+		DisableClipping(false)
+	end
 
 	self.Rank = Label( "Unknown", self )
 	self.Rank:SetFont( "ScoreboardRank" )
@@ -247,7 +256,7 @@ function PLAYER:UpdatePlayer()
 		text = self.Player:Nick() .. ' [' .. self.Player:GetRPName() .. '] [' .. class .. ']'
 	end
 
-	self.Name:SetText( text )
+	self.Name.Text = text
 	local AFKText = ""
 	if self.Player:GetNWBool("isAFK") then
 		AFKText = " | ( AFK )"
@@ -359,6 +368,9 @@ function PLAYER:Paint( w, h )
 	local Alpha 	= 10 + ( 200 * math.abs( math.sin( CurTime() * 2 ) ) )
 
 	if self.Player && IsValid(self.Player) then
+		if self.Player:GetNWBool("RainbowName") then
+			self.Name.Rainbow = true
+		end
 		if not self.Player:GetGNWVar( "disguised" ) and self.Player:IsAdmin() then
 			Colour = Color( self.Player:GetRankColor().r, self.Player:GetRankColor().g, self.Player:GetRankColor().b, Alpha )
 		else
@@ -370,7 +382,7 @@ function PLAYER:Paint( w, h )
 		end
 	end
 
-	self.Name:SetColor( Colour )
+	self.Name.Color = Colour
 
 end
 

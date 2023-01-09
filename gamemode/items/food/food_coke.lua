@@ -31,7 +31,7 @@ ITEM.ModelFOV 				= 70
 local toAddStam = 15
 if SERVER then
 	function ITEM.OnUse( Player )		
-		Player.Stamina = math.Clamp( Player.Stamina + toAddStam, 0, 100 )
+		Player:SetNWFloat("Stamina", math.Clamp( Player:GetNWFloat("Stamina") + toAddStam, 0, 100 ) )
 		Player:AddHunger( 8 )
 		
 		Player:EmitSound( "perp2.5/can_opening.mp3" )
@@ -40,11 +40,7 @@ if SERVER then
 	end
 else
 	function ITEM.OnUse()	
-		LocalPlayer().Stamina = math.Clamp( LocalPlayer().Stamina + toAddStam, 0, 100 )
-		
-		--surface.PlaySound( "perp2.5/can_opening.mp3" )
 		timer.Simple( .5, function() surface.PlaySound( "perp2.5/drinking.mp3" ) end )
-		
 		return true
 	end
 end

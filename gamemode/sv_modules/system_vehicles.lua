@@ -819,7 +819,7 @@ function GM:SpawnVehicle(Player, vehicleID, PlayerTable, override_spawn)
 		location = Player:GetZoneName(),
 		spawner = Player:SteamID()
 	})
-	Msg( Player:GetRPName() .. " ["..Player:SteamID().."] Spawned in a " .. vehicleTable.Name .. "\n" )
+	Log( Player:GetRPName() .. " ["..Player:SteamID().."] Spawned in a " .. vehicleTable.Name .. "\n" )
 
 	newVehicle:AddMapBlipSpecificPlayer("paris/blips/vehicle", "perp_vehicle_"..tostring(vehicleID), 25, Color(255,255,255,255), 100000, "*", false, Player)
 
@@ -1305,6 +1305,8 @@ net.Receive( "perp_v_demo", function( len, Player )
 		return Player:Notify( "You have to pay your traffic ticket(s) before you can drive in a vehicle again." )
 	end
 
+	Log( Format( "%s is demoing vehicle %s", Player:Nick(), vehicleTable.Name ) )
+
 	GAMEMODE:DemoVehicle( Player, vehicleID )
 end )
 
@@ -1742,9 +1744,8 @@ end
 
 hook.Add("Think", "VehicleTurboNoise", function()
 	for _, veh in pairs(ents.FindByClass("prop_vehicle_jeep")) do
-		if veh.GearSounds and veh.Turbo == 1 then
+		if veh:IsEngineStarted() and veh.GearSounds and veh.Turbo == 1 then
 			if not veh.Gear then veh.Gear = 0 end
-			--print(veh:GetSpeed()/veh:GetMaxSpeed(),veh.GearSounds[1])
 			local rat = (veh:GetSpeed()*0.5/veh:GetMaxSpeed()) * 1
 			if (CurTime() < (veh.NextTurbo or 0)) then return end
 			for gear, speedfac in pairs(veh.GearSounds or {}) do

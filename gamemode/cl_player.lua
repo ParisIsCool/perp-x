@@ -8,23 +8,10 @@
 //>>>>>>>>>>>>><<<<<<<<<<<<<<//
 ///////////////////////////--]]
 
-function PLAYER:ForceEyeAngles( NPC )
-	self.ForceEyeAnglesObj = NPC
-end
 
-function PLAYER:ClearForcedEyeAngles()
-	self.ForceEyeAnglesObj = nil
-end
-
-net.Receive( "vip_time", function()
-	local Time = net.ReadInt(32)
-
-	if Time > 0 then -- unlimited vip
-		GAMEMODE.VIPExpire = Time + os.time()
-	else
-		GAMEMODE.VIPExpire = nil
-	end
-end )
+--[[
+	Client Time Syncing 
+]]--
 
 local timeoffset
 net.Receive( "TimeSync", function()
@@ -38,6 +25,10 @@ end
 function GetServerTime()
 	return os.time() + ( timeoffset or 0 )
 end
+
+--[[
+	Blacklists 
+]]--
 
 GM.Blacklists = GM.Blacklists or {}
 
@@ -108,6 +99,10 @@ net.Receive("BlacklistAdminTable", function()
 	GAMEMODE.Blacklists = net.ReadTable() or {}
 end)
 
+--[[
+	Buddy 
+]]--
+
 function PLAYER:HasBuddy( otherPlayer )
 	if self == otherPlayer then return true end
 
@@ -117,6 +112,10 @@ function PLAYER:HasBuddy( otherPlayer )
 		end
 	end
 end
+
+--[[
+	Organizations 
+]]--
 
 GM.OrganizationData = GM.OrganizationData or {}
 function PLAYER:GetOrganizationName()
@@ -128,6 +127,10 @@ function PLAYER:GetOrganizationName()
 
 	return "Unknown"
 end
+
+--[[
+	CanSee 
+]]--
 
 function PLAYER:HasLOS( Entity )
 	local tr = util.TraceLine( {
@@ -169,16 +172,12 @@ function PLAYER:CanSee( Entity, Strict )
 	end
 end
 
+--[[
+	Receive Perp Extra 
+]]--
+
 net.Receive("PerpExtrasClientOnly", function()
 	local data = net.ReadTable()
 	if not LocalPlayer()[data[1]] then LocalPlayer()[data[1]] = {} end
 	LocalPlayer()[data[1]] = data[2]
-end)
-
-
-concommand.Add("getvector", function(ply)
-	local x,y,z = math.Round(ply:GetPos().x),math.Round(ply:GetPos().y),math.Round(ply:GetPos().z)
-	local String = "Vector( "..x..", "..y..", "..z.." )"
-	SetClipboardText(String)
-	MsgC(Color(70, 211, 242), "Copied vector to clipboard.")
 end)
